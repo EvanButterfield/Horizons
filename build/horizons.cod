@@ -5,60 +5,173 @@ include listing.inc
 INCLUDELIB LIBCMTD
 INCLUDELIB OLDNAMES
 
+PUBLIC	SeverityMessages
+_DATA	SEGMENT
+SeverityMessages DQ FLAT:$SG7743
+	DD	0bH
+	ORG $+4
+	DQ	FLAT:$SG7744
+	DD	0bH
+	ORG $+4
+	DQ	FLAT:$SG7745
+	DD	0bH
+	ORG $+4
+$SG7743	DB	'[DEBUG]:   ', 00H
+	ORG $+4
+$SG7744	DB	'[WARNING]: ', 00H
+	ORG $+4
+$SG7745	DB	'[ERROR]:   ', 00H
+_DATA	ENDS
 PUBLIC	GameUpdateAndRender
 PUBLIC	_DllMainCRTStartup
+_BSS	SEGMENT
+State	DQ	01H DUP (?)
+_BSS	ENDS
 pdata	SEGMENT
-$pdata$GameUpdateAndRender DD imagerel $LN3
-	DD	imagerel $LN3+40
+$pdata$GameUpdateAndRender DD imagerel $LN4
+	DD	imagerel $LN4+178
 	DD	imagerel $unwind$GameUpdateAndRender
 pdata	ENDS
 xdata	SEGMENT
-$unwind$GameUpdateAndRender DD 011901H
-	DD	02219H
+$unwind$GameUpdateAndRender DD 011401H
+	DD	06214H
 xdata	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\horizons.c
+; File w:\new-horizons\code\horizons.c
 _TEXT	SEGMENT
 _DllMainCRTStartup PROC
 
-; 11   : }
+; 25   : }
 
   00000	c2 00 00	 ret	 0
 _DllMainCRTStartup ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\horizons.c
+; File w:\new-horizons\code\horizons.c
 _TEXT	SEGMENT
-Return$ = 0
-Dimension$ = 32
-Memory$ = 40
-Input$ = 48
-DeltaTime$ = 56
+tv73 = 32
+Memory$ = 64
+Input$ = 72
+DeltaTime$ = 80
 GameUpdateAndRender PROC
 
-; 4    : {
+; 8    : {
 
-$LN3:
-  00000	f3 0f 11 5c 24
-	20		 movss	 DWORD PTR [rsp+32], xmm3
-  00006	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
-  0000b	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
-  00010	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  00015	48 83 ec 18	 sub	 rsp, 24
+$LN4:
+  00000	f3 0f 11 54 24
+	18		 movss	 DWORD PTR [rsp+24], xmm2
+  00006	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000b	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00010	48 83 ec 38	 sub	 rsp, 56			; 00000038H
 
-; 5    :   b32 Return = false;
+; 9    :   State = (game_state *)Memory->PermanentStorage;
 
-  00019	c7 04 24 00 00
-	00 00		 mov	 DWORD PTR Return$[rsp], 0
+  00014	48 8b 44 24 40	 mov	 rax, QWORD PTR Memory$[rsp]
+  00019	48 8b 40 08	 mov	 rax, QWORD PTR [rax+8]
+  0001d	48 89 05 00 00
+	00 00		 mov	 QWORD PTR State, rax
 
-; 6    :   return(Return);
+; 10   :   if(!State->Initialized)
 
-  00020	8b 04 24	 mov	 eax, DWORD PTR Return$[rsp]
+  00024	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR State
+  0002b	83 78 30 00	 cmp	 DWORD PTR [rax+48], 0
+  0002f	75 6b		 jne	 SHORT $LN2@GameUpdate
 
-; 7    : }
+; 11   :   {
+; 12   :     InitializeArena(&State->PermArena, (u8 *)Memory->PermanentStorage + sizeof(game_state),
 
-  00023	48 83 c4 18	 add	 rsp, 24
-  00027	c3		 ret	 0
+  00031	48 8b 44 24 40	 mov	 rax, QWORD PTR Memory$[rsp]
+  00036	48 8b 00	 mov	 rax, QWORD PTR [rax]
+  00039	48 83 e8 38	 sub	 rax, 56			; 00000038H
+  0003d	48 8b 4c 24 40	 mov	 rcx, QWORD PTR Memory$[rsp]
+  00042	48 8b 49 08	 mov	 rcx, QWORD PTR [rcx+8]
+  00046	48 83 c1 38	 add	 rcx, 56			; 00000038H
+  0004a	48 8b 15 00 00
+	00 00		 mov	 rdx, QWORD PTR State
+  00051	48 89 54 24 20	 mov	 QWORD PTR tv73[rsp], rdx
+  00056	4c 8b c0	 mov	 r8, rax
+  00059	48 8b d1	 mov	 rdx, rcx
+  0005c	48 8b 44 24 20	 mov	 rax, QWORD PTR tv73[rsp]
+  00061	48 8b c8	 mov	 rcx, rax
+  00064	e8 00 00 00 00	 call	 InitializeArena
+
+; 13   :                     Memory->PermanentStorageSize - sizeof(game_state));
+; 14   :     InitializeArena(&State->TempArena, (u8 *)Memory->TempStorage, Memory->TempStorageSize);
+
+  00069	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR State
+  00070	48 83 c0 18	 add	 rax, 24
+  00074	48 8b 4c 24 40	 mov	 rcx, QWORD PTR Memory$[rsp]
+  00079	4c 8b 41 10	 mov	 r8, QWORD PTR [rcx+16]
+  0007d	48 8b 4c 24 40	 mov	 rcx, QWORD PTR Memory$[rsp]
+  00082	48 8b 51 18	 mov	 rdx, QWORD PTR [rcx+24]
+  00086	48 8b c8	 mov	 rcx, rax
+  00089	e8 00 00 00 00	 call	 InitializeArena
+
+; 15   :     
+; 16   :     State->Initialized = true;
+
+  0008e	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR State
+  00095	c7 40 30 01 00
+	00 00		 mov	 DWORD PTR [rax+48], 1
+$LN2@GameUpdate:
+
+; 17   :   }
+; 18   :   
+; 19   :   State->TempArena.Used = 0;
+
+  0009c	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR State
+  000a3	48 c7 40 28 00
+	00 00 00	 mov	 QWORD PTR [rax+40], 0
+
+; 20   :   return(false);
+
+  000ab	33 c0		 xor	 eax, eax
+
+; 21   : }
+
+  000ad	48 83 c4 38	 add	 rsp, 56			; 00000038H
+  000b1	c3		 ret	 0
 GameUpdateAndRender ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\platform.h
+_TEXT	SEGMENT
+Arena$ = 8
+BackingBuffer$ = 16
+Size$ = 24
+InitializeArena PROC
+
+; 91   : {
+
+  00000	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  00005	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000a	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+
+; 92   :   Arena->Memory = BackingBuffer;
+
+  0000f	48 8b 44 24 08	 mov	 rax, QWORD PTR Arena$[rsp]
+  00014	48 8b 4c 24 10	 mov	 rcx, QWORD PTR BackingBuffer$[rsp]
+  00019	48 89 08	 mov	 QWORD PTR [rax], rcx
+
+; 93   :   Arena->Size = Size;
+
+  0001c	48 8b 44 24 08	 mov	 rax, QWORD PTR Arena$[rsp]
+  00021	48 8b 4c 24 18	 mov	 rcx, QWORD PTR Size$[rsp]
+  00026	48 89 48 08	 mov	 QWORD PTR [rax+8], rcx
+
+; 94   :   Arena->Used = 0;
+
+  0002a	48 8b 44 24 08	 mov	 rax, QWORD PTR Arena$[rsp]
+  0002f	48 c7 40 10 00
+	00 00 00	 mov	 QWORD PTR [rax+16], 0
+
+; 95   : }
+
+  00037	c3		 ret	 0
+InitializeArena ENDP
 _TEXT	ENDS
 END

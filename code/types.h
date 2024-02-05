@@ -44,6 +44,12 @@ typedef s32 b32;
 
 typedef size_t memory_index;
 
+typedef struct string8
+{
+  s8 *Str;
+  s32 Length;
+} string8;
+
 internal inline u32
 SafeTruncateUInt64(u64 Value)
 {

@@ -7,7 +7,7 @@ set LinkerFlags=-nodefaultlib -incremental:no -opt:ref kernel32.lib user32.lib g
 
 del *.pdb > NUL 2> NUL
 echo WAITING FOR PDB > lock.tmp
-cl %CompilerFlags% w:\engine\code\horizons.c -LD /link -nodefaultlib -incremental:no -opt:ref -PDB:engine_%random%.pdb -Export:GameUpdateAndRender
+cl %CompilerFlags% w:\new-horizons\code\horizons.c -LD /link -nodefaultlib -incremental:no -opt:ref -Export:GameUpdateAndRender
 del lock.tmp
-cl %CompilerFlags% w:\engine\code\win32.c /link -subsystem:windows %LinkerFlags%
+cl %CompilerFlags% w:\new-horizons\code\win32.c /link -subsystem:windows %LinkerFlags%
 popd

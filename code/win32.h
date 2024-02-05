@@ -3,7 +3,7 @@
 
 typedef struct win32_state
 {
-  input GameInput;
+  game_input GameInput;
   s64 PerfCountFrequency;
   b32 ShowCursor;
   
@@ -11,7 +11,8 @@ typedef struct win32_state
   
   window_dimension WindowDimension;
   
-  memory_arena Arena;
+  memory_arena PermArena;
+  memory_arena TempArena;
   
   b32 WindowClosed;
 } win32_state;

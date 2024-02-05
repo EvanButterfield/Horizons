@@ -7,8 +7,25 @@ INCLUDELIB OLDNAMES
 
 PUBLIC	XInputGetStateStub
 PUBLIC	XInputSetStateStub
+PUBLIC	SeverityMessages
 _DATA	SEGMENT
 COMM	_fltused:DWORD
+_DATA	ENDS
+_DATA	SEGMENT
+SeverityMessages DQ FLAT:$SG7743
+	DD	0bH
+	ORG $+4
+	DQ	FLAT:$SG7744
+	DD	0bH
+	ORG $+4
+	DQ	FLAT:$SG7745
+	DD	0bH
+	ORG $+4
+$SG7743	DB	'[DEBUG]:   ', 00H
+	ORG $+4
+$SG7744	DB	'[WARNING]: ', 00H
+	ORG $+4
+$SG7745	DB	'[ERROR]:   ', 00H
 _DATA	ENDS
 PUBLIC	WinMain
 PUBLIC	WinMainCRTStartup
@@ -21,6 +38,7 @@ EXTRN	__imp_ReadFile:PROC
 EXTRN	__imp_WriteFile:PROC
 EXTRN	__imp_OutputDebugStringA:PROC
 EXTRN	__imp_CloseHandle:PROC
+EXTRN	__imp_GetLastError:PROC
 EXTRN	__imp_QueryPerformanceCounter:PROC
 EXTRN	__imp_QueryPerformanceFrequency:PROC
 EXTRN	__imp_ExitProcess:PROC
@@ -40,7 +58,6 @@ EXTRN	__imp_CreateWindowExW:PROC
 EXTRN	__imp_GetDC:PROC
 EXTRN	__imp_GetClientRect:PROC
 EXTRN	__imp_ShowCursor:PROC
-EXTRN	__imp_ClientToScreen:PROC
 EXTRN	__imp_LoadCursorW:PROC
 EXTRN	__imp_timeBeginPeriod:PROC
 EXTRN	__ImageBase:BYTE
@@ -52,18 +69,48 @@ pdata	SEGMENT
 $pdata$SafeTruncateUInt64 DD imagerel SafeTruncateUInt64
 	DD	imagerel SafeTruncateUInt64+47
 	DD	imagerel $unwind$SafeTruncateUInt64
+$pdata$PushSize DD imagerel PushSize
+	DD	imagerel PushSize+100
+	DD	imagerel $unwind$PushSize
 $pdata$GameUpdateAndRenderStub DD imagerel GameUpdateAndRenderStub
-	DD	imagerel GameUpdateAndRenderStub+47
+	DD	imagerel GameUpdateAndRenderStub+50
 	DD	imagerel $unwind$GameUpdateAndRenderStub
-$pdata$WinMain DD imagerel $LN25
-	DD	imagerel $LN25+2151
+$pdata$StringLength DD imagerel StringLength
+	DD	imagerel StringLength+51
+	DD	imagerel $unwind$StringLength
+$pdata$CreateString DD imagerel CreateString
+	DD	imagerel CreateString+117
+	DD	imagerel $unwind$CreateString
+$pdata$DuplicateString DD imagerel DuplicateString
+	DD	imagerel DuplicateString+118
+	DD	imagerel $unwind$DuplicateString
+$pdata$CatStrings DD imagerel CatStrings
+	DD	imagerel CatStrings+174
+	DD	imagerel $unwind$CatStrings
+$pdata$CatStringsPlain DD imagerel CatStringsPlain
+	DD	imagerel CatStringsPlain+216
+	DD	imagerel $unwind$CatStringsPlain
+$pdata$WinMain DD imagerel $LN24
+	DD	imagerel $LN24+2202
 	DD	imagerel $unwind$WinMain
+$pdata$Win32CopyMemory DD imagerel Win32CopyMemory
+	DD	imagerel Win32CopyMemory+37
+	DD	imagerel $unwind$Win32CopyMemory
+$pdata$Win32ZeroMemory DD imagerel Win32ZeroMemory
+	DD	imagerel Win32ZeroMemory+27
+	DD	imagerel $unwind$Win32ZeroMemory
 $pdata$Win32GetWindowDimension DD imagerel Win32GetWindowDimension
 	DD	imagerel Win32GetWindowDimension+86
 	DD	imagerel $unwind$Win32GetWindowDimension
 $pdata$Win32OutputString DD imagerel Win32OutputString
 	DD	imagerel Win32OutputString+25
 	DD	imagerel $unwind$Win32OutputString
+$pdata$Win32LogMessage DD imagerel Win32LogMessage
+	DD	imagerel Win32LogMessage+445
+	DD	imagerel $unwind$Win32LogMessage
+$pdata$Win32LogMessagePlain DD imagerel Win32LogMessagePlain
+	DD	imagerel Win32LogMessagePlain+102
+	DD	imagerel $unwind$Win32LogMessagePlain
 $pdata$Win32LoadXInput DD imagerel Win32LoadXInput
 	DD	imagerel Win32LoadXInput+137
 	DD	imagerel $unwind$Win32LoadXInput
@@ -71,25 +118,25 @@ $pdata$Win32GetLastWriteTime DD imagerel Win32GetLastWriteTime
 	DD	imagerel Win32GetLastWriteTime+70
 	DD	imagerel $unwind$Win32GetLastWriteTime
 $pdata$Win32LoadGameCode DD imagerel Win32LoadGameCode
-	DD	imagerel Win32LoadGameCode+285
+	DD	imagerel Win32LoadGameCode+295
 	DD	imagerel $unwind$Win32LoadGameCode
 $pdata$Win32UnloadGameCode DD imagerel Win32UnloadGameCode
 	DD	imagerel Win32UnloadGameCode+81
 	DD	imagerel $unwind$Win32UnloadGameCode
 $pdata$Win32OpenFile DD imagerel Win32OpenFile
-	DD	imagerel Win32OpenFile+160
+	DD	imagerel Win32OpenFile+303
 	DD	imagerel $unwind$Win32OpenFile
 $pdata$Win32GetFileSize DD imagerel Win32GetFileSize
-	DD	imagerel Win32GetFileSize+68
+	DD	imagerel Win32GetFileSize+394
 	DD	imagerel $unwind$Win32GetFileSize
 $pdata$Win32ReadEntireFile DD imagerel Win32ReadEntireFile
-	DD	imagerel Win32ReadEntireFile+82
+	DD	imagerel Win32ReadEntireFile+592
 	DD	imagerel $unwind$Win32ReadEntireFile
 $pdata$Win32WriteEntireFile DD imagerel Win32WriteEntireFile
-	DD	imagerel Win32WriteEntireFile+113
+	DD	imagerel Win32WriteEntireFile+442
 	DD	imagerel $unwind$Win32WriteEntireFile
 $pdata$Win32CloseFile DD imagerel Win32CloseFile
-	DD	imagerel Win32CloseFile+25
+	DD	imagerel Win32CloseFile+28
 	DD	imagerel $unwind$Win32CloseFile
 $pdata$Win32GetWallClock DD imagerel Win32GetWallClock
 	DD	imagerel Win32GetWallClock+25
@@ -109,43 +156,95 @@ CONST	SEGMENT
 __real@3f800000 DD 03f800000r			; 1
 CONST	ENDS
 _DATA	SEGMENT
-$SG7757	DB	'Inside Stub', 0aH, 00H
+	ORG $+4
+$SG7785	DB	'Inside Stub', 0aH, 00H
 	ORG $+3
 XInputGetState_ DQ FLAT:XInputGetStateStub
 XInputSetState_ DQ FLAT:XInputSetStateStub
-$SG72995 DB	'Xinput9_1_0.dll', 00H
-$SG72997 DB	'Xinput1_4.dll', 00H
-	ORG $+2
-$SG72999 DB	'Xinput1_3.dll', 00H
-	ORG $+2
-$SG73001 DB	'XInputGetState', 00H
-	ORG $+1
-$SG73002 DB	'XInputSetState', 00H
-	ORG $+1
-$SG73021 DB	'GameUpdateAndRender', 00H
-	ORG $+4
-$SG73156 DB	'W', 00H, 'i', 00H, 'n', 00H, 'd', 00H, 'o', 00H, 'w', 00H
-	DB	'C', 00H, 'l', 00H, 'a', 00H, 's', 00H, 's', 00H, 00H, 00H
-$SG73157 DB	'engine.dll', 00H
+$SG73099 DB	'[ENGINE]: ', 00H
 	ORG $+5
-$SG73158 DB	'engine_temp.dll', 00H
-$SG73159 DB	'lock.tmp', 00H
+$SG73100 DB	'[PLATFORM (WIN32)]: ', 00H
+	ORG $+3
+$SG73112 DB	'Xinput9_1_0.dll', 00H
+$SG73114 DB	'Xinput1_4.dll', 00H
+	ORG $+2
+$SG73116 DB	'Xinput1_3.dll', 00H
+	ORG $+2
+$SG73118 DB	'XInputGetState', 00H
+	ORG $+1
+$SG73119 DB	'XInputSetState', 00H
+	ORG $+1
+$SG73139 DB	'GameUpdateAndRender', 00H
+	ORG $+4
+$SG73168 DB	': could not GetFileSize in Win32GetFileSize', 0aH, 00H
+	ORG $+3
+$SG73169 DB	': did not have a valid handle when being passed to Win32'
+	DB	'GetFileSize', 0aH, 00H
+	ORG $+3
+$SG73187 DB	': failed to ReadFile in Win32ReadEntireFile', 0aH, 00H
+	ORG $+3
+$SG73188 DB	': the ''Dest'' passed to Win32ReadEntireFile was invalid'
+	DB	0aH, 00H
+$SG73189 DB	': did not have a valid handle when being passed to Win32'
+	DB	'ReadEntireFile', 0aH, 00H
+$SG73207 DB	': failed to WriteFile in Win32WriteEntireFile', 0aH, 00H
+	ORG $+9
+$SG73208 DB	': did not have a valid handle when being passed to Win32'
+	DB	'WriteEntireFile', 0aH, 00H
 	ORG $+7
-$SG73162 DB	'E', 00H, 'n', 00H, 'g', 00H, 'i', 00H, 'n', 00H, 'e', 00H
-	DB	00H, 00H
+$SG73279 DB	'W', 00H, 'i', 00H, 'n', 00H, 'd', 00H, 'o', 00H, 'w', 00H
+	DB	'C', 00H, 'l', 00H, 'a', 00H, 's', 00H, 's', 00H, 00H, 00H
+$SG73280 DB	'horizons.dll', 00H
+	ORG $+3
+$SG73281 DB	'horizons_temp.dll', 00H
+	ORG $+6
+$SG73282 DB	'lock.tmp', 00H
+	ORG $+7
+$SG73285 DB	'H', 00H, 'o', 00H, 'r', 00H, 'i', 00H, 'z', 00H, 'o', 00H
+	DB	'n', 00H, 's', 00H, 00H, 00H
+	ORG $+6
+$SG73295 DB	'Failed to create window', 0aH, 00H
+	ORG $+7
+$SG73296 DB	'Failed to register window class', 0aH, 00H
 _DATA	ENDS
 xdata	SEGMENT
 $unwind$SafeTruncateUInt64 DD 010901H
 	DD	02209H
-$unwind$GameUpdateAndRenderStub DD 011901H
-	DD	04219H
+$unwind$PushSize DD 010e01H
+	DD	0220eH
+$unwind$GameUpdateAndRenderStub DD 011401H
+	DD	04214H
+$unwind$StringLength DD 010901H
+	DD	02209H
+$unwind$CreateString DD 031a01H
+	DD	07016621aH
+	DD	06015H
+$unwind$DuplicateString DD 031a01H
+	DD	07016621aH
+	DD	06015H
+$unwind$CatStrings DD 031a01H
+	DD	07016621aH
+	DD	06015H
+$unwind$CatStringsPlain DD 041d01H
+	DD	013011dH
+	DD	060157016H
 $unwind$WinMain DD 041d01H
 	DD	04f011dH
 	DD	060157016H
+$unwind$Win32CopyMemory DD 021101H
+	DD	060107011H
+$unwind$Win32ZeroMemory DD 010b01H
+	DD	0700bH
 $unwind$Win32GetWindowDimension DD 020a01H
 	DD	07006720aH
 $unwind$Win32OutputString DD 010901H
 	DD	04209H
+$unwind$Win32LogMessage DD 041701H
+	DD	01d0117H
+	DD	0600f7010H
+$unwind$Win32LogMessagePlain DD 031401H
+	DD	070108214H
+	DD	0600fH
 $unwind$Win32LoadXInput DD 010401H
 	DD	06204H
 $unwind$Win32GetLastWriteTime DD 020a01H
@@ -155,14 +254,18 @@ $unwind$Win32LoadGameCode DD 041d01H
 	DD	060157016H
 $unwind$Win32UnloadGameCode DD 010901H
 	DD	04209H
-$unwind$Win32OpenFile DD 010d01H
-	DD	0a20dH
-$unwind$Win32GetFileSize DD 010901H
-	DD	06209H
-$unwind$Win32ReadEntireFile DD 011201H
-	DD	08212H
-$unwind$Win32WriteEntireFile DD 011201H
-	DD	08212H
+$unwind$Win32OpenFile DD 041801H
+	DD	0130118H
+	DD	060107011H
+$unwind$Win32GetFileSize DD 040e01H
+	DD	019010eH
+	DD	060067007H
+$unwind$Win32ReadEntireFile DD 041701H
+	DD	0210117H
+	DD	0600f7010H
+$unwind$Win32WriteEntireFile DD 041701H
+	DD	0190117H
+	DD	0600f7010H
 $unwind$Win32CloseFile DD 010901H
 	DD	04209H
 $unwind$Win32GetWallClock DD 010401H
@@ -175,17 +278,17 @@ $unwind$WinMainCRTStartup DD 010401H
 	DD	06204H
 xdata	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Result$ = 32
 WinMainCRTStartup PROC
 
-; 466  : {
+; 518  : {
 
 $LN3:
   00000	48 83 ec 38	 sub	 rsp, 56			; 00000038H
 
-; 467  :   int Result = WinMain(GetModuleHandle(0), 0, 0, 0);
+; 519  :   int Result = WinMain(GetModuleHandle(0), 0, 0, 0);
 
   00004	33 c9		 xor	 ecx, ecx
   00006	ff 15 00 00 00
@@ -197,21 +300,21 @@ $LN3:
   00017	e8 00 00 00 00	 call	 WinMain
   0001c	89 44 24 20	 mov	 DWORD PTR Result$[rsp], eax
 
-; 468  :   ExitProcess(Result);
+; 520  :   ExitProcess(Result);
 
   00020	8b 4c 24 20	 mov	 ecx, DWORD PTR Result$[rsp]
   00024	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_ExitProcess
 $LN2@WinMainCRT:
 
-; 469  : }
+; 521  : }
 
   0002a	48 83 c4 38	 add	 rsp, 56			; 00000038H
   0002e	c3		 ret	 0
 WinMainCRTStartup ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 IsDown$1 = 32
 tv64 = 36
@@ -227,7 +330,7 @@ WParam$ = 112
 LParam$ = 120
 Win32WindowProc PROC
 
-; 476  : {
+; 528  : {
 
   00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
   00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
@@ -235,13 +338,13 @@ Win32WindowProc PROC
   0000e	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00013	48 83 ec 58	 sub	 rsp, 88			; 00000058H
 
-; 477  :   LRESULT Result = 0;
+; 529  :   LRESULT Result = 0;
 
   00017	48 c7 44 24 40
 	00 00 00 00	 mov	 QWORD PTR Result$[rsp], 0
 
-; 478  :   
-; 479  :   switch(Message)
+; 530  :   
+; 531  :   switch(Message)
 
   00020	8b 44 24 68	 mov	 eax, DWORD PTR Message$[rsp]
   00024	89 44 24 24	 mov	 DWORD PTR tv64[rsp], eax
@@ -302,10 +405,10 @@ $LN47@Win32Windo:
   000e1	e9 04 03 00 00	 jmp	 $LN43@Win32Windo
 $LN6@Win32Windo:
 
-; 480  :   {
-; 481  :     case WM_SETCURSOR:
-; 482  :     {
-; 483  :       if(GlobalState->ShowCursor)
+; 532  :   {
+; 533  :     case WM_SETCURSOR:
+; 534  :     {
+; 535  :       if(GlobalState->ShowCursor)
 
   000e6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
@@ -313,8 +416,8 @@ $LN6@Win32Windo:
 	00 00		 cmp	 DWORD PTR [rax+176], 0
   000f4	74 20		 je	 SHORT $LN7@Win32Windo
 
-; 484  :       {
-; 485  :         Result = DefWindowProc(Window, Message, WParam, LParam);
+; 536  :       {
+; 537  :         Result = DefWindowProc(Window, Message, WParam, LParam);
 
   000f6	4c 8b 4c 24 78	 mov	 r9, QWORD PTR LParam$[rsp]
   000fb	4c 8b 44 24 70	 mov	 r8, QWORD PTR WParam$[rsp]
@@ -324,22 +427,22 @@ $LN6@Win32Windo:
 	00		 call	 QWORD PTR __imp_DefWindowProcW
   0010f	48 89 44 24 40	 mov	 QWORD PTR Result$[rsp], rax
 
-; 486  :       }
+; 538  :       }
 
   00114	eb 08		 jmp	 SHORT $LN8@Win32Windo
 $LN7@Win32Windo:
 
-; 487  :       else
-; 488  :       {
-; 489  :         ShowCursor(0);
+; 539  :       else
+; 540  :       {
+; 541  :         ShowCursor(0);
 
   00116	33 c9		 xor	 ecx, ecx
   00118	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_ShowCursor
 $LN8@Win32Windo:
 
-; 490  :       }
-; 491  :     } break;
+; 542  :       }
+; 543  :     } break;
 
   0011e	e9 e5 02 00 00	 jmp	 $LN2@Win32Windo
 $LN9@Win32Windo:
@@ -347,25 +450,25 @@ $LN10@Win32Windo:
 $LN11@Win32Windo:
 $LN12@Win32Windo:
 
-; 492  :     
-; 493  :     case WM_KEYDOWN:
-; 494  :     case WM_KEYUP:
-; 495  :     case WM_SYSKEYDOWN:
-; 496  :     case WM_SYSKEYUP:
-; 497  :     {
-; 498  :       u32 VKCode = (u32)WParam;
+; 544  :     
+; 545  :     case WM_KEYDOWN:
+; 546  :     case WM_KEYUP:
+; 547  :     case WM_SYSKEYDOWN:
+; 548  :     case WM_SYSKEYUP:
+; 549  :     {
+; 550  :       u32 VKCode = (u32)WParam;
 
   00123	8b 44 24 70	 mov	 eax, DWORD PTR WParam$[rsp]
   00127	89 44 24 30	 mov	 DWORD PTR VKCode$2[rsp], eax
 
-; 499  :       b32 WasDown = LParam & (1 << 30);
+; 551  :       b32 WasDown = LParam & (1 << 30);
 
   0012b	48 8b 44 24 78	 mov	 rax, QWORD PTR LParam$[rsp]
   00130	48 25 00 00 00
 	40		 and	 rax, 1073741824		; 40000000H
   00136	89 44 24 34	 mov	 DWORD PTR WasDown$3[rsp], eax
 
-; 500  :       b32 IsDown = (LParam & (1 << 31)) == 0;
+; 552  :       b32 IsDown = (LParam & (1 << 31)) == 0;
 
   0013a	48 8b 44 24 78	 mov	 rax, QWORD PTR LParam$[rsp]
   0013f	48 25 00 00 00
@@ -382,16 +485,16 @@ $LN46@Win32Windo:
   0015c	8b 44 24 2c	 mov	 eax, DWORD PTR tv77[rsp]
   00160	89 44 24 20	 mov	 DWORD PTR IsDown$1[rsp], eax
 
-; 501  :       
-; 502  :       if(WasDown != IsDown)
+; 553  :       
+; 554  :       if(WasDown != IsDown)
 
   00164	8b 44 24 20	 mov	 eax, DWORD PTR IsDown$1[rsp]
   00168	39 44 24 34	 cmp	 DWORD PTR WasDown$3[rsp], eax
   0016c	0f 84 92 01 00
 	00		 je	 $LN13@Win32Windo
 
-; 503  :       {
-; 504  :         switch(VKCode)
+; 555  :       {
+; 556  :         switch(VKCode)
 
   00172	8b 44 24 30	 mov	 eax, DWORD PTR VKCode$2[rsp]
   00176	89 44 24 28	 mov	 DWORD PTR tv79[rsp], eax
@@ -412,181 +515,181 @@ $LN46@Win32Windo:
   001ad	ff e0		 jmp	 rax
 $LN14@Win32Windo:
 
-; 505  :         {
-; 506  :           case 'W':
-; 507  :           {
-; 508  :             GlobalState->GameInput.Keyboard.W = IsDown;
+; 557  :         {
+; 558  :           case 'W':
+; 559  :           {
+; 560  :             GlobalState->GameInput.Keyboard.W = IsDown;
 
   001af	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   001b6	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   001ba	89 08		 mov	 DWORD PTR [rax], ecx
 
-; 509  :           } break;
+; 561  :           } break;
 
   001bc	e9 43 01 00 00	 jmp	 $LN4@Win32Windo
 $LN15@Win32Windo:
 
-; 510  :           
-; 511  :           case 'A':
-; 512  :           {
-; 513  :             GlobalState->GameInput.Keyboard.A = IsDown;
+; 562  :           
+; 563  :           case 'A':
+; 564  :           {
+; 565  :             GlobalState->GameInput.Keyboard.A = IsDown;
 
   001c1	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   001c8	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   001cc	89 48 04	 mov	 DWORD PTR [rax+4], ecx
 
-; 514  :           } break;
+; 566  :           } break;
 
   001cf	e9 30 01 00 00	 jmp	 $LN4@Win32Windo
 $LN16@Win32Windo:
 
-; 515  :           
-; 516  :           case 'S':
-; 517  :           {
-; 518  :             GlobalState->GameInput.Keyboard.S = IsDown;
+; 567  :           
+; 568  :           case 'S':
+; 569  :           {
+; 570  :             GlobalState->GameInput.Keyboard.S = IsDown;
 
   001d4	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   001db	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   001df	89 48 08	 mov	 DWORD PTR [rax+8], ecx
 
-; 519  :           } break;
+; 571  :           } break;
 
   001e2	e9 1d 01 00 00	 jmp	 $LN4@Win32Windo
 $LN17@Win32Windo:
 
-; 520  :           
-; 521  :           case 'D':
-; 522  :           {
-; 523  :             GlobalState->GameInput.Keyboard.D = IsDown;
+; 572  :           
+; 573  :           case 'D':
+; 574  :           {
+; 575  :             GlobalState->GameInput.Keyboard.D = IsDown;
 
   001e7	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   001ee	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   001f2	89 48 0c	 mov	 DWORD PTR [rax+12], ecx
 
-; 524  :           } break;
+; 576  :           } break;
 
   001f5	e9 0a 01 00 00	 jmp	 $LN4@Win32Windo
 $LN18@Win32Windo:
 
-; 525  :           
-; 526  :           case 'Q':
-; 527  :           {
-; 528  :             GlobalState->GameInput.Keyboard.Q = IsDown;
+; 577  :           
+; 578  :           case 'Q':
+; 579  :           {
+; 580  :             GlobalState->GameInput.Keyboard.Q = IsDown;
 
   001fa	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00201	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   00205	89 48 10	 mov	 DWORD PTR [rax+16], ecx
 
-; 529  :           } break;
+; 581  :           } break;
 
   00208	e9 f7 00 00 00	 jmp	 $LN4@Win32Windo
 $LN19@Win32Windo:
 
-; 530  :           
-; 531  :           case 'E':
-; 532  :           {
-; 533  :             GlobalState->GameInput.Keyboard.E = IsDown;
+; 582  :           
+; 583  :           case 'E':
+; 584  :           {
+; 585  :             GlobalState->GameInput.Keyboard.E = IsDown;
 
   0020d	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00214	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   00218	89 48 14	 mov	 DWORD PTR [rax+20], ecx
 
-; 534  :           } break;
+; 586  :           } break;
 
   0021b	e9 e4 00 00 00	 jmp	 $LN4@Win32Windo
 $LN20@Win32Windo:
 
-; 535  :           
-; 536  :           case 'M':
-; 537  :           {
-; 538  :             GlobalState->GameInput.Keyboard.M = IsDown;
+; 587  :           
+; 588  :           case 'M':
+; 589  :           {
+; 590  :             GlobalState->GameInput.Keyboard.M = IsDown;
 
   00220	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00227	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   0022b	89 48 18	 mov	 DWORD PTR [rax+24], ecx
 
-; 539  :           } break;
+; 591  :           } break;
 
   0022e	e9 d1 00 00 00	 jmp	 $LN4@Win32Windo
 $LN21@Win32Windo:
 
-; 540  :           
-; 541  :           case VK_UP:
-; 542  :           {
-; 543  :             GlobalState->GameInput.Keyboard.Up = IsDown;
+; 592  :           
+; 593  :           case VK_UP:
+; 594  :           {
+; 595  :             GlobalState->GameInput.Keyboard.Up = IsDown;
 
   00233	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   0023a	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   0023e	89 48 1c	 mov	 DWORD PTR [rax+28], ecx
 
-; 544  :           } break;
+; 596  :           } break;
 
   00241	e9 be 00 00 00	 jmp	 $LN4@Win32Windo
 $LN22@Win32Windo:
 
-; 545  :           
-; 546  :           case VK_LEFT:
-; 547  :           {
-; 548  :             GlobalState->GameInput.Keyboard.Left = IsDown;
+; 597  :           
+; 598  :           case VK_LEFT:
+; 599  :           {
+; 600  :             GlobalState->GameInput.Keyboard.Left = IsDown;
 
   00246	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   0024d	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   00251	89 48 20	 mov	 DWORD PTR [rax+32], ecx
 
-; 549  :           } break;
+; 601  :           } break;
 
   00254	e9 ab 00 00 00	 jmp	 $LN4@Win32Windo
 $LN23@Win32Windo:
 
-; 550  :           
-; 551  :           case VK_DOWN:
-; 552  :           {
-; 553  :             GlobalState->GameInput.Keyboard.Down = IsDown;
+; 602  :           
+; 603  :           case VK_DOWN:
+; 604  :           {
+; 605  :             GlobalState->GameInput.Keyboard.Down = IsDown;
 
   00259	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00260	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   00264	89 48 24	 mov	 DWORD PTR [rax+36], ecx
 
-; 554  :           } break;
+; 606  :           } break;
 
   00267	e9 98 00 00 00	 jmp	 $LN4@Win32Windo
 $LN24@Win32Windo:
 
-; 555  :           
-; 556  :           case VK_RIGHT:
-; 557  :           {
-; 558  :             GlobalState->GameInput.Keyboard.Right = IsDown;
+; 607  :           
+; 608  :           case VK_RIGHT:
+; 609  :           {
+; 610  :             GlobalState->GameInput.Keyboard.Right = IsDown;
 
   0026c	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00273	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   00277	89 48 28	 mov	 DWORD PTR [rax+40], ecx
 
-; 559  :           } break;
+; 611  :           } break;
 
   0027a	e9 85 00 00 00	 jmp	 $LN4@Win32Windo
 $LN25@Win32Windo:
 
-; 560  :           
-; 561  :           case VK_BACK:
-; 562  :           {
-; 563  :             if(IsDown)
+; 612  :           
+; 613  :           case VK_BACK:
+; 614  :           {
+; 615  :             if(IsDown)
 
   0027f	83 7c 24 20 00	 cmp	 DWORD PTR IsDown$1[rsp], 0
   00284	74 0e		 je	 SHORT $LN26@Win32Windo
 
-; 564  :             {
-; 565  :               GlobalState->GameInput.Keyboard.Backspace = true;
+; 616  :             {
+; 617  :               GlobalState->GameInput.Keyboard.Backspace = true;
 
   00286	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
@@ -594,106 +697,106 @@ $LN25@Win32Windo:
 	00 00		 mov	 DWORD PTR [rax+44], 1
 $LN26@Win32Windo:
 
-; 566  :             }
-; 567  :           } break;
+; 618  :             }
+; 619  :           } break;
 
   00294	eb 6e		 jmp	 SHORT $LN4@Win32Windo
 $LN27@Win32Windo:
 
-; 568  :           
-; 569  :           case VK_ESCAPE:
-; 570  :           {
-; 571  :             GlobalState->GameInput.Keyboard.Escape = IsDown;
+; 620  :           
+; 621  :           case VK_ESCAPE:
+; 622  :           {
+; 623  :             GlobalState->GameInput.Keyboard.Escape = IsDown;
 
   00296	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   0029d	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002a1	89 48 30	 mov	 DWORD PTR [rax+48], ecx
 
-; 572  :           } break;
+; 624  :           } break;
 
   002a4	eb 5e		 jmp	 SHORT $LN4@Win32Windo
 $LN28@Win32Windo:
 
-; 573  :           
-; 574  :           case VK_DELETE:
-; 575  :           {
-; 576  :             GlobalState->GameInput.Keyboard.Delete = IsDown;
+; 625  :           
+; 626  :           case VK_DELETE:
+; 627  :           {
+; 628  :             GlobalState->GameInput.Keyboard.Delete = IsDown;
 
   002a6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   002ad	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002b1	89 48 34	 mov	 DWORD PTR [rax+52], ecx
 
-; 577  :           } break;
+; 629  :           } break;
 
   002b4	eb 4e		 jmp	 SHORT $LN4@Win32Windo
 $LN29@Win32Windo:
 
-; 578  :           
-; 579  :           case VK_SPACE:
-; 580  :           {
-; 581  :             GlobalState->GameInput.Keyboard.Space = IsDown;
+; 630  :           
+; 631  :           case VK_SPACE:
+; 632  :           {
+; 633  :             GlobalState->GameInput.Keyboard.Space = IsDown;
 
   002b6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   002bd	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002c1	89 48 38	 mov	 DWORD PTR [rax+56], ecx
 
-; 582  :           } break;
+; 634  :           } break;
 
   002c4	eb 3e		 jmp	 SHORT $LN4@Win32Windo
 $LN30@Win32Windo:
 
-; 583  :           
-; 584  :           case VK_RETURN:
-; 585  :           {
-; 586  :             GlobalState->GameInput.Keyboard.Enter = IsDown;
+; 635  :           
+; 636  :           case VK_RETURN:
+; 637  :           {
+; 638  :             GlobalState->GameInput.Keyboard.Enter = IsDown;
 
   002c6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   002cd	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002d1	89 48 3c	 mov	 DWORD PTR [rax+60], ecx
 
-; 587  :           } break;
+; 639  :           } break;
 
   002d4	eb 2e		 jmp	 SHORT $LN4@Win32Windo
 $LN31@Win32Windo:
 
-; 588  :           
-; 589  :           case 0x31:
-; 590  :           {
-; 591  :             GlobalState->GameInput.Keyboard.One = IsDown;
+; 640  :           
+; 641  :           case 0x31:
+; 642  :           {
+; 643  :             GlobalState->GameInput.Keyboard.One = IsDown;
 
   002d6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   002dd	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002e1	89 48 40	 mov	 DWORD PTR [rax+64], ecx
 
-; 592  :           } break;
+; 644  :           } break;
 
   002e4	eb 1e		 jmp	 SHORT $LN4@Win32Windo
 $LN32@Win32Windo:
 
-; 593  :           
-; 594  :           case 0x32:
-; 595  :           {
-; 596  :             GlobalState->GameInput.Keyboard.Two = IsDown;
+; 645  :           
+; 646  :           case 0x32:
+; 647  :           {
+; 648  :             GlobalState->GameInput.Keyboard.Two = IsDown;
 
   002e6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   002ed	8b 4c 24 20	 mov	 ecx, DWORD PTR IsDown$1[rsp]
   002f1	89 48 44	 mov	 DWORD PTR [rax+68], ecx
 
-; 597  :           } break;
+; 649  :           } break;
 
   002f4	eb 0e		 jmp	 SHORT $LN4@Win32Windo
 $LN33@Win32Windo:
 
-; 598  :           
-; 599  :           case 0x33:
-; 600  :           {
-; 601  :             GlobalState->GameInput.Keyboard.Three = IsDown;
+; 650  :           
+; 651  :           case 0x33:
+; 652  :           {
+; 653  :             GlobalState->GameInput.Keyboard.Three = IsDown;
 
   002f6	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
@@ -702,39 +805,39 @@ $LN33@Win32Windo:
 $LN4@Win32Windo:
 $LN13@Win32Windo:
 
-; 602  :           } break;
-; 603  :         }
-; 604  :       }
-; 605  :       
-; 606  :       if(IsDown)
+; 654  :           } break;
+; 655  :         }
+; 656  :       }
+; 657  :       
+; 658  :       if(IsDown)
 
   00304	83 7c 24 20 00	 cmp	 DWORD PTR IsDown$1[rsp], 0
   00309	74 39		 je	 SHORT $LN34@Win32Windo
 
-; 607  :       {
-; 608  :         b32 AltKeyIsDown = (LParam & (1 << 29));
+; 659  :       {
+; 660  :         b32 AltKeyIsDown = (LParam & (1 << 29));
 
   0030b	48 8b 44 24 78	 mov	 rax, QWORD PTR LParam$[rsp]
   00310	48 25 00 00 00
 	20		 and	 rax, 536870912		; 20000000H
   00316	89 44 24 38	 mov	 DWORD PTR AltKeyIsDown$4[rsp], eax
 
-; 609  :         GlobalState->GameInput.Keyboard.AltF4 = false;
+; 661  :         GlobalState->GameInput.Keyboard.AltF4 = false;
 
   0031a	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00321	c7 40 4c 00 00
 	00 00		 mov	 DWORD PTR [rax+76], 0
 
-; 610  :         if(AltKeyIsDown && VKCode == VK_F4)
+; 662  :         if(AltKeyIsDown && VKCode == VK_F4)
 
   00328	83 7c 24 38 00	 cmp	 DWORD PTR AltKeyIsDown$4[rsp], 0
   0032d	74 15		 je	 SHORT $LN35@Win32Windo
   0032f	83 7c 24 30 73	 cmp	 DWORD PTR VKCode$2[rsp], 115 ; 00000073H
   00334	75 0e		 jne	 SHORT $LN35@Win32Windo
 
-; 611  :         {
-; 612  :           GlobalState->GameInput.Keyboard.AltF4 = true;
+; 663  :         {
+; 664  :           GlobalState->GameInput.Keyboard.AltF4 = true;
 
   00336	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
@@ -743,77 +846,77 @@ $LN13@Win32Windo:
 $LN35@Win32Windo:
 $LN34@Win32Windo:
 
-; 613  :         }
-; 614  :       }
-; 615  :     } break;
+; 665  :         }
+; 666  :       }
+; 667  :     } break;
 
   00344	e9 bf 00 00 00	 jmp	 $LN2@Win32Windo
 $LN36@Win32Windo:
 
-; 616  :     
-; 617  :     case WM_LBUTTONDOWN:
-; 618  :     {
-; 619  :       GlobalState->GameInput.Mouse.LButton = true;
+; 668  :     
+; 669  :     case WM_LBUTTONDOWN:
+; 670  :     {
+; 671  :       GlobalState->GameInput.Mouse.LButton = true;
 
   00349	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00350	c7 40 50 01 00
 	00 00		 mov	 DWORD PTR [rax+80], 1
 
-; 620  :     } break;
+; 672  :     } break;
 
   00357	e9 ac 00 00 00	 jmp	 $LN2@Win32Windo
 $LN37@Win32Windo:
 
-; 621  :     
-; 622  :     case WM_LBUTTONUP:
-; 623  :     {
-; 624  :       GlobalState->GameInput.Mouse.LButton = false;
+; 673  :     
+; 674  :     case WM_LBUTTONUP:
+; 675  :     {
+; 676  :       GlobalState->GameInput.Mouse.LButton = false;
 
   0035c	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00363	c7 40 50 00 00
 	00 00		 mov	 DWORD PTR [rax+80], 0
 
-; 625  :     } break;
+; 677  :     } break;
 
   0036a	e9 99 00 00 00	 jmp	 $LN2@Win32Windo
 $LN38@Win32Windo:
 
-; 626  :     
-; 627  :     case WM_RBUTTONDOWN:
-; 628  :     {
-; 629  :       GlobalState->GameInput.Mouse.RButton = true;
+; 678  :     
+; 679  :     case WM_RBUTTONDOWN:
+; 680  :     {
+; 681  :       GlobalState->GameInput.Mouse.RButton = true;
 
   0036f	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00376	c7 40 54 01 00
 	00 00		 mov	 DWORD PTR [rax+84], 1
 
-; 630  :     } break;
+; 682  :     } break;
 
   0037d	e9 86 00 00 00	 jmp	 $LN2@Win32Windo
 $LN39@Win32Windo:
 
-; 631  :     
-; 632  :     case WM_RBUTTONUP:
-; 633  :     {
-; 634  :       GlobalState->GameInput.Mouse.RButton = false;
+; 683  :     
+; 684  :     case WM_RBUTTONUP:
+; 685  :     {
+; 686  :       GlobalState->GameInput.Mouse.RButton = false;
 
   00382	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   00389	c7 40 54 00 00
 	00 00		 mov	 DWORD PTR [rax+84], 0
 
-; 635  :     } break;
+; 687  :     } break;
 
   00390	eb 76		 jmp	 SHORT $LN2@Win32Windo
 $LN40@Win32Windo:
 
-; 636  :     
-; 637  :     case WM_MOUSEMOVE:
-; 638  :     {
-; 639  :       GlobalState->GameInput.Mouse.X = GET_X_LPARAM(LParam);
+; 688  :     
+; 689  :     case WM_MOUSEMOVE:
+; 690  :     {
+; 691  :       GlobalState->GameInput.Mouse.X = GET_X_LPARAM(LParam);
 
   00392	48 8b 44 24 78	 mov	 rax, QWORD PTR LParam$[rsp]
   00397	48 25 ff ff 00
@@ -823,7 +926,7 @@ $LN40@Win32Windo:
 	00 00		 mov	 rcx, QWORD PTR GlobalState
   003a5	89 41 5c	 mov	 DWORD PTR [rcx+92], eax
 
-; 640  :       GlobalState->GameInput.Mouse.Y = GET_Y_LPARAM(LParam);
+; 692  :       GlobalState->GameInput.Mouse.Y = GET_Y_LPARAM(LParam);
 
   003a8	48 8b 44 24 78	 mov	 rax, QWORD PTR LParam$[rsp]
   003ad	48 c1 e8 10	 shr	 rax, 16
@@ -834,45 +937,45 @@ $LN40@Win32Windo:
 	00 00		 mov	 rcx, QWORD PTR GlobalState
   003bf	89 41 64	 mov	 DWORD PTR [rcx+100], eax
 
-; 641  :     } break;
+; 693  :     } break;
 
   003c2	eb 44		 jmp	 SHORT $LN2@Win32Windo
 $LN41@Win32Windo:
 
-; 642  :     
-; 643  :     case WM_CLOSE:
-; 644  :     {
-; 645  :       GlobalState->WindowClosed = true;
+; 694  :     
+; 695  :     case WM_CLOSE:
+; 696  :     {
+; 697  :       GlobalState->WindowClosed = true;
 
   003c4	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  003cb	c7 80 e0 00 00
-	00 01 00 00 00	 mov	 DWORD PTR [rax+224], 1
+  003cb	c7 80 f8 00 00
+	00 01 00 00 00	 mov	 DWORD PTR [rax+248], 1
 
-; 646  :     } break;
+; 698  :     } break;
 
   003d5	eb 31		 jmp	 SHORT $LN2@Win32Windo
 $LN42@Win32Windo:
 
-; 647  :     
-; 648  :     case WM_DESTROY:
-; 649  :     {
-; 650  :       GlobalState->WindowClosed = true;;
+; 699  :     
+; 700  :     case WM_DESTROY:
+; 701  :     {
+; 702  :       GlobalState->WindowClosed = true;;
 
   003d7	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  003de	c7 80 e0 00 00
-	00 01 00 00 00	 mov	 DWORD PTR [rax+224], 1
+  003de	c7 80 f8 00 00
+	00 01 00 00 00	 mov	 DWORD PTR [rax+248], 1
 
-; 651  :     } break;
+; 703  :     } break;
 
   003e8	eb 1e		 jmp	 SHORT $LN2@Win32Windo
 $LN43@Win32Windo:
 
-; 652  :     
-; 653  :     default:
-; 654  :     {
-; 655  :       Result = DefWindowProc(Window, Message, WParam, LParam);
+; 704  :     
+; 705  :     default:
+; 706  :     {
+; 707  :       Result = DefWindowProc(Window, Message, WParam, LParam);
 
   003ea	4c 8b 4c 24 78	 mov	 r9, QWORD PTR LParam$[rsp]
   003ef	4c 8b 44 24 70	 mov	 r8, QWORD PTR WParam$[rsp]
@@ -883,14 +986,14 @@ $LN43@Win32Windo:
   00403	48 89 44 24 40	 mov	 QWORD PTR Result$[rsp], rax
 $LN2@Win32Windo:
 
-; 656  :     } break;
-; 657  :   }
-; 658  :   
-; 659  :   return(Result);
+; 708  :     } break;
+; 709  :   }
+; 710  :   
+; 711  :   return(Result);
 
   00408	48 8b 44 24 40	 mov	 rax, QWORD PTR Result$[rsp]
 
-; 660  : }
+; 712  : }
 
   0040d	48 83 c4 58	 add	 rsp, 88			; 00000058H
   00411	c3		 ret	 0
@@ -1000,20 +1103,20 @@ $LN49@Win32Windo:
 Win32WindowProc ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Result$ = 0
 Start$ = 32
 End$ = 40
 Win32GetSecondsElapsed PROC
 
-; 242  : {
+; 302  : {
 
   00000	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
   00005	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   0000a	48 83 ec 18	 sub	 rsp, 24
 
-; 243  :   f32 Result = ((f32)(End.QuadPart - Start.QuadPart) /
+; 303  :   f32 Result = ((f32)(End.QuadPart - Start.QuadPart) /
 
   0000e	48 8b 44 24 20	 mov	 rax, QWORD PTR Start$[rsp]
   00013	48 8b 4c 24 28	 mov	 rcx, QWORD PTR End$[rsp]
@@ -1027,445 +1130,916 @@ Win32GetSecondsElapsed PROC
   00033	f3 0f 5e c1	 divss	 xmm0, xmm1
   00037	f3 0f 11 04 24	 movss	 DWORD PTR Result$[rsp], xmm0
 
-; 244  :                 (f32)GlobalState->PerfCountFrequency);
-; 245  :   return(Result);
+; 304  :                 (f32)GlobalState->PerfCountFrequency);
+; 305  :   return(Result);
 
   0003c	f3 0f 10 04 24	 movss	 xmm0, DWORD PTR Result$[rsp]
 
-; 246  : }
+; 306  : }
 
   00041	48 83 c4 18	 add	 rsp, 24
   00045	c3		 ret	 0
 Win32GetSecondsElapsed ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Result$ = 32
 Win32GetWallClock PROC
 
-; 234  : {
+; 294  : {
 
   00000	48 83 ec 38	 sub	 rsp, 56			; 00000038H
 
-; 235  :   LARGE_INTEGER Result;
-; 236  :   QueryPerformanceCounter(&Result);
+; 295  :   LARGE_INTEGER Result;
+; 296  :   QueryPerformanceCounter(&Result);
 
   00004	48 8d 4c 24 20	 lea	 rcx, QWORD PTR Result$[rsp]
   00009	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_QueryPerformanceCounter
 
-; 237  :   return(Result);
+; 297  :   return(Result);
 
   0000f	48 8b 44 24 20	 mov	 rax, QWORD PTR Result$[rsp]
 
-; 238  : }
+; 298  : }
 
   00014	48 83 c4 38	 add	 rsp, 56			; 00000038H
   00018	c3		 ret	 0
 Win32GetWallClock ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Handle$ = 48
 Win32CloseFile PROC
 
-; 228  : {
+; 288  : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	48 83 ec 28	 sub	 rsp, 40			; 00000028H
 
-; 229  :   CloseHandle(Handle);
+; 289  :   CloseHandle(Handle.Handle);
 
-  00009	48 8b 4c 24 30	 mov	 rcx, QWORD PTR Handle$[rsp]
-  0000e	ff 15 00 00 00
+  00009	48 8b 44 24 30	 mov	 rax, QWORD PTR Handle$[rsp]
+  0000e	48 8b 08	 mov	 rcx, QWORD PTR [rax]
+  00011	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_CloseHandle
 
-; 230  : }
+; 290  : }
 
-  00014	48 83 c4 28	 add	 rsp, 40			; 00000028H
-  00018	c3		 ret	 0
+  00017	48 83 c4 28	 add	 rsp, 40			; 00000028H
+  0001b	c3		 ret	 0
 Win32CloseFile ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Result$ = 48
 BytesWritten$1 = 52
 File$ = 56
-Handle$ = 80
-DataSize$ = 88
-Data$ = 96
+$T2 = 64
+Message$3 = 80
+$T4 = 96
+$T5 = 112
+Message$6 = 128
+$T7 = 144
+$T8 = 160
+$T9 = 176
+Handle$ = 224
+DataSize$ = 232
+Data$ = 240
 Win32WriteEntireFile PROC
 
-; 202  : {
+; 257  : {
 
   00000	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
   00005	89 54 24 10	 mov	 DWORD PTR [rsp+16], edx
   00009	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  0000e	48 83 ec 48	 sub	 rsp, 72			; 00000048H
+  0000e	56		 push	 rsi
+  0000f	57		 push	 rdi
+  00010	48 81 ec c8 00
+	00 00		 sub	 rsp, 200		; 000000c8H
 
-; 203  :   b32 Result = false;
+; 258  :   b32 Result = false;
 
-  00012	c7 44 24 30 00
+  00017	c7 44 24 30 00
 	00 00 00	 mov	 DWORD PTR Result$[rsp], 0
 
-; 204  :   
-; 205  :   HANDLE File = *((HANDLE *)Handle);
+; 259  :   
+; 260  :   HANDLE File = *((HANDLE *)Handle.Handle);
 
-  0001a	48 8b 44 24 50	 mov	 rax, QWORD PTR Handle$[rsp]
-  0001f	48 8b 00	 mov	 rax, QWORD PTR [rax]
-  00022	48 89 44 24 38	 mov	 QWORD PTR File$[rsp], rax
+  0001f	48 8b 84 24 e0
+	00 00 00	 mov	 rax, QWORD PTR Handle$[rsp]
+  00027	48 8b 00	 mov	 rax, QWORD PTR [rax]
+  0002a	48 8b 00	 mov	 rax, QWORD PTR [rax]
+  0002d	48 89 44 24 38	 mov	 QWORD PTR File$[rsp], rax
 
-; 206  :   if(File != INVALID_HANDLE_VALUE)
+; 261  :   if(File != INVALID_HANDLE_VALUE)
 
-  00027	48 83 7c 24 38
+  00032	48 83 7c 24 38
 	ff		 cmp	 QWORD PTR File$[rsp], -1
-  0002d	74 39		 je	 SHORT $LN2@Win32Write
+  00038	0f 84 d7 00 00
+	00		 je	 $LN2@Win32Write
 
-; 207  :   {
-; 208  :     DWORD BytesWritten;
-; 209  :     if(WriteFile(File, Data, DataSize, &BytesWritten, 0) &&
+; 262  :   {
+; 263  :     DWORD BytesWritten;
+; 264  :     if(WriteFile(File, Data, DataSize, &BytesWritten, 0) &&
 
-  0002f	48 c7 44 24 20
+  0003e	48 c7 44 24 20
 	00 00 00 00	 mov	 QWORD PTR [rsp+32], 0
-  00038	4c 8d 4c 24 34	 lea	 r9, QWORD PTR BytesWritten$1[rsp]
-  0003d	44 8b 44 24 58	 mov	 r8d, DWORD PTR DataSize$[rsp]
-  00042	48 8b 54 24 60	 mov	 rdx, QWORD PTR Data$[rsp]
-  00047	48 8b 4c 24 38	 mov	 rcx, QWORD PTR File$[rsp]
-  0004c	ff 15 00 00 00
+  00047	4c 8d 4c 24 34	 lea	 r9, QWORD PTR BytesWritten$1[rsp]
+  0004c	44 8b 84 24 e8
+	00 00 00	 mov	 r8d, DWORD PTR DataSize$[rsp]
+  00054	48 8b 94 24 f0
+	00 00 00	 mov	 rdx, QWORD PTR Data$[rsp]
+  0005c	48 8b 4c 24 38	 mov	 rcx, QWORD PTR File$[rsp]
+  00061	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_WriteFile
-  00052	85 c0		 test	 eax, eax
-  00054	74 12		 je	 SHORT $LN4@Win32Write
-  00056	8b 44 24 58	 mov	 eax, DWORD PTR DataSize$[rsp]
-  0005a	39 44 24 34	 cmp	 DWORD PTR BytesWritten$1[rsp], eax
-  0005e	75 08		 jne	 SHORT $LN4@Win32Write
+  00067	85 c0		 test	 eax, eax
+  00069	74 1a		 je	 SHORT $LN4@Win32Write
+  0006b	8b 84 24 e8 00
+	00 00		 mov	 eax, DWORD PTR DataSize$[rsp]
+  00072	39 44 24 34	 cmp	 DWORD PTR BytesWritten$1[rsp], eax
+  00076	75 0d		 jne	 SHORT $LN4@Win32Write
 
-; 210  :        BytesWritten == DataSize)
-; 211  :     {
-; 212  :       Result = true;
+; 265  :        BytesWritten == DataSize)
+; 266  :     {
+; 267  :       Result = true;
 
-  00060	c7 44 24 30 01
+  00078	c7 44 24 30 01
 	00 00 00	 mov	 DWORD PTR Result$[rsp], 1
+
+; 268  :     }
+
+  00080	e9 8b 00 00 00	 jmp	 $LN5@Win32Write
 $LN4@Win32Write:
+
+; 269  :     else
+; 270  :     {
+; 271  :       string8 Message = CatStringsPlain(Handle.FileName, ": failed to WriteFile in Win32WriteEntireFile\n",
+
+  00085	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  0008c	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  00092	48 8d 4c 24 40	 lea	 rcx, QWORD PTR $T2[rsp]
+  00097	48 8b 94 24 e0
+	00 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  0009f	48 8b f9	 mov	 rdi, rcx
+  000a2	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  000a6	b9 10 00 00 00	 mov	 ecx, 16
+  000ab	f3 a4		 rep movsb
+  000ad	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  000b4	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  000b9	4c 8b c8	 mov	 r9, rax
+  000bc	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73207
+  000c3	48 8d 54 24 40	 lea	 rdx, QWORD PTR $T2[rsp]
+  000c8	48 8d 8c 24 a0
+	00 00 00	 lea	 rcx, QWORD PTR $T8[rsp]
+  000d0	e8 00 00 00 00	 call	 CatStringsPlain
+  000d5	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000da	48 8b f9	 mov	 rdi, rcx
+  000dd	48 8b f0	 mov	 rsi, rax
+  000e0	b9 10 00 00 00	 mov	 ecx, 16
+  000e5	f3 a4		 rep movsb
+
+; 272  :                                         &GlobalState->TempArena, Win32CopyMemory);
+; 273  :       Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
+
+  000e7	48 8d 44 24 60	 lea	 rax, QWORD PTR $T4[rsp]
+  000ec	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000f1	48 8b f8	 mov	 rdi, rax
+  000f4	48 8b f1	 mov	 rsi, rcx
+  000f7	b9 10 00 00 00	 mov	 ecx, 16
+  000fc	f3 a4		 rep movsb
+  000fe	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  00104	33 d2		 xor	 edx, edx
+  00106	48 8d 4c 24 60	 lea	 rcx, QWORD PTR $T4[rsp]
+  0010b	e8 00 00 00 00	 call	 Win32LogMessage
+$LN5@Win32Write:
+
+; 274  :     }
+; 275  :   }
+
+  00110	e9 97 00 00 00	 jmp	 $LN3@Win32Write
 $LN2@Win32Write:
 
-; 213  :     }
-; 214  :     else
-; 215  :     {
-; 216  :       // TODO(evan): Logging
-; 217  :     }
-; 218  :   }
-; 219  :   else
-; 220  :   {
-; 221  :     // TODO(evan): Logging
-; 222  :   }
-; 223  :   
-; 224  :   return(Result);
+; 276  :   else
+; 277  :   {
+; 278  :     string8 Message =
 
-  00068	8b 44 24 30	 mov	 eax, DWORD PTR Result$[rsp]
+  00115	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  0011c	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  00122	48 8d 4c 24 70	 lea	 rcx, QWORD PTR $T5[rsp]
+  00127	48 8b 94 24 e0
+	00 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  0012f	48 8b f9	 mov	 rdi, rcx
+  00132	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  00136	b9 10 00 00 00	 mov	 ecx, 16
+  0013b	f3 a4		 rep movsb
+  0013d	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  00144	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  00149	4c 8b c8	 mov	 r9, rax
+  0014c	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73208
+  00153	48 8d 54 24 70	 lea	 rdx, QWORD PTR $T5[rsp]
+  00158	48 8d 8c 24 b0
+	00 00 00	 lea	 rcx, QWORD PTR $T9[rsp]
+  00160	e8 00 00 00 00	 call	 CatStringsPlain
+  00165	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  0016d	48 8b f9	 mov	 rdi, rcx
+  00170	48 8b f0	 mov	 rsi, rax
+  00173	b9 10 00 00 00	 mov	 ecx, 16
+  00178	f3 a4		 rep movsb
 
-; 225  : }
+; 279  :       CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32WriteEntireFile\n",
+; 280  :                       &GlobalState->TempArena, Win32CopyMemory);
+; 281  :     Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
 
-  0006c	48 83 c4 48	 add	 rsp, 72			; 00000048H
-  00070	c3		 ret	 0
+  0017a	48 8d 84 24 90
+	00 00 00	 lea	 rax, QWORD PTR $T7[rsp]
+  00182	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  0018a	48 8b f8	 mov	 rdi, rax
+  0018d	48 8b f1	 mov	 rsi, rcx
+  00190	b9 10 00 00 00	 mov	 ecx, 16
+  00195	f3 a4		 rep movsb
+  00197	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  0019d	33 d2		 xor	 edx, edx
+  0019f	48 8d 8c 24 90
+	00 00 00	 lea	 rcx, QWORD PTR $T7[rsp]
+  001a7	e8 00 00 00 00	 call	 Win32LogMessage
+$LN3@Win32Write:
+
+; 282  :   }
+; 283  :   
+; 284  :   return(Result);
+
+  001ac	8b 44 24 30	 mov	 eax, DWORD PTR Result$[rsp]
+
+; 285  : }
+
+  001b0	48 81 c4 c8 00
+	00 00		 add	 rsp, 200		; 000000c8H
+  001b7	5f		 pop	 rdi
+  001b8	5e		 pop	 rsi
+  001b9	c3		 ret	 0
 Win32WriteEntireFile ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 BytesRead$1 = 48
-Handle$ = 80
-FileSize$ = 88
-Dest$ = 96
+$T2 = 64
+Message$3 = 80
+$T4 = 96
+$T5 = 112
+Message$6 = 128
+$T7 = 144
+$T8 = 160
+Message$9 = 176
+$T10 = 192
+$T11 = 208
+$T12 = 224
+$T13 = 240
+Handle$ = 288
+FileSize$ = 296
+Dest$ = 304
 Win32ReadEntireFile PROC
 
-; 175  : {
+; 222  : {
 
   00000	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
   00005	89 54 24 10	 mov	 DWORD PTR [rsp+16], edx
   00009	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  0000e	48 83 ec 48	 sub	 rsp, 72			; 00000048H
+  0000e	56		 push	 rsi
+  0000f	57		 push	 rdi
+  00010	48 81 ec 08 01
+	00 00		 sub	 rsp, 264		; 00000108H
 
-; 176  :   if(Handle != INVALID_HANDLE_VALUE)
+; 223  :   if(Handle.Handle != INVALID_HANDLE_VALUE)
 
-  00012	48 83 7c 24 50
-	ff		 cmp	 QWORD PTR Handle$[rsp], -1
-  00018	74 33		 je	 SHORT $LN2@Win32ReadE
+  00017	48 8b 84 24 20
+	01 00 00	 mov	 rax, QWORD PTR Handle$[rsp]
+  0001f	48 83 38 ff	 cmp	 QWORD PTR [rax], -1
+  00023	0f 84 80 01 00
+	00		 je	 $LN2@Win32ReadE
 
-; 177  :   {
-; 178  :     if(Dest)
+; 224  :   {
+; 225  :     if(Dest)
 
-  0001a	48 83 7c 24 60
-	00		 cmp	 QWORD PTR Dest$[rsp], 0
-  00020	74 2b		 je	 SHORT $LN4@Win32ReadE
+  00029	48 83 bc 24 30
+	01 00 00 00	 cmp	 QWORD PTR Dest$[rsp], 0
+  00032	0f 84 d5 00 00
+	00		 je	 $LN4@Win32ReadE
 
-; 179  :     {
-; 180  :       DWORD BytesRead;
-; 181  :       if(ReadFile(Handle, Dest, FileSize, &BytesRead, 0) &&
+; 226  :     {
+; 227  :       DWORD BytesRead;
+; 228  :       if(ReadFile(Handle.Handle, Dest, FileSize, &BytesRead, 0) &&
 
-  00022	48 c7 44 24 20
+  00038	48 c7 44 24 20
 	00 00 00 00	 mov	 QWORD PTR [rsp+32], 0
-  0002b	4c 8d 4c 24 30	 lea	 r9, QWORD PTR BytesRead$1[rsp]
-  00030	44 8b 44 24 58	 mov	 r8d, DWORD PTR FileSize$[rsp]
-  00035	48 8b 54 24 60	 mov	 rdx, QWORD PTR Dest$[rsp]
-  0003a	48 8b 4c 24 50	 mov	 rcx, QWORD PTR Handle$[rsp]
-  0003f	ff 15 00 00 00
+  00041	4c 8d 4c 24 30	 lea	 r9, QWORD PTR BytesRead$1[rsp]
+  00046	44 8b 84 24 28
+	01 00 00	 mov	 r8d, DWORD PTR FileSize$[rsp]
+  0004e	48 8b 94 24 30
+	01 00 00	 mov	 rdx, QWORD PTR Dest$[rsp]
+  00056	48 8b 84 24 20
+	01 00 00	 mov	 rax, QWORD PTR Handle$[rsp]
+  0005e	48 8b 08	 mov	 rcx, QWORD PTR [rax]
+  00061	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_ReadFile
-  00045	85 c0		 test	 eax, eax
-  00047	74 04		 je	 SHORT $LN6@Win32ReadE
-  00049	8b 44 24 58	 mov	 eax, DWORD PTR FileSize$[rsp]
+  00067	85 c0		 test	 eax, eax
+  00069	74 12		 je	 SHORT $LN6@Win32ReadE
+  0006b	8b 84 24 28 01
+	00 00		 mov	 eax, DWORD PTR FileSize$[rsp]
+  00072	39 44 24 30	 cmp	 DWORD PTR BytesRead$1[rsp], eax
+  00076	75 05		 jne	 SHORT $LN6@Win32ReadE
+
+; 229  :          BytesRead == FileSize)
+; 230  :       {
+; 231  :       }
+
+  00078	e9 8b 00 00 00	 jmp	 $LN7@Win32ReadE
 $LN6@Win32ReadE:
+
+; 232  :       else
+; 233  :       {
+; 234  :         string8 Message = CatStringsPlain(Handle.FileName, ": failed to ReadFile in Win32ReadEntireFile\n",
+
+  0007d	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00084	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  0008a	48 8d 4c 24 40	 lea	 rcx, QWORD PTR $T2[rsp]
+  0008f	48 8b 94 24 20
+	01 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  00097	48 8b f9	 mov	 rdi, rcx
+  0009a	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  0009e	b9 10 00 00 00	 mov	 ecx, 16
+  000a3	f3 a4		 rep movsb
+  000a5	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  000ac	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  000b1	4c 8b c8	 mov	 r9, rax
+  000b4	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73187
+  000bb	48 8d 54 24 40	 lea	 rdx, QWORD PTR $T2[rsp]
+  000c0	48 8d 8c 24 d0
+	00 00 00	 lea	 rcx, QWORD PTR $T11[rsp]
+  000c8	e8 00 00 00 00	 call	 CatStringsPlain
+  000cd	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000d2	48 8b f9	 mov	 rdi, rcx
+  000d5	48 8b f0	 mov	 rsi, rax
+  000d8	b9 10 00 00 00	 mov	 ecx, 16
+  000dd	f3 a4		 rep movsb
+
+; 235  :                                           &GlobalState->TempArena, Win32CopyMemory);
+; 236  :         Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
+
+  000df	48 8d 44 24 60	 lea	 rax, QWORD PTR $T4[rsp]
+  000e4	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000e9	48 8b f8	 mov	 rdi, rax
+  000ec	48 8b f1	 mov	 rsi, rcx
+  000ef	b9 10 00 00 00	 mov	 ecx, 16
+  000f4	f3 a4		 rep movsb
+  000f6	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  000fc	33 d2		 xor	 edx, edx
+  000fe	48 8d 4c 24 60	 lea	 rcx, QWORD PTR $T4[rsp]
+  00103	e8 00 00 00 00	 call	 Win32LogMessage
+$LN7@Win32ReadE:
+
+; 237  :       }
+; 238  :     }
+
+  00108	e9 97 00 00 00	 jmp	 $LN5@Win32ReadE
 $LN4@Win32ReadE:
+
+; 239  :     else
+; 240  :     {
+; 241  :       string8 Message =
+
+  0010d	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00114	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  0011a	48 8d 4c 24 70	 lea	 rcx, QWORD PTR $T5[rsp]
+  0011f	48 8b 94 24 20
+	01 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  00127	48 8b f9	 mov	 rdi, rcx
+  0012a	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  0012e	b9 10 00 00 00	 mov	 ecx, 16
+  00133	f3 a4		 rep movsb
+  00135	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  0013c	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  00141	4c 8b c8	 mov	 r9, rax
+  00144	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73188
+  0014b	48 8d 54 24 70	 lea	 rdx, QWORD PTR $T5[rsp]
+  00150	48 8d 8c 24 e0
+	00 00 00	 lea	 rcx, QWORD PTR $T12[rsp]
+  00158	e8 00 00 00 00	 call	 CatStringsPlain
+  0015d	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  00165	48 8b f9	 mov	 rdi, rcx
+  00168	48 8b f0	 mov	 rsi, rax
+  0016b	b9 10 00 00 00	 mov	 ecx, 16
+  00170	f3 a4		 rep movsb
+
+; 242  :         CatStringsPlain(Handle.FileName, ": the \'Dest\' passed to Win32ReadEntireFile was invalid\n",
+; 243  :                         &GlobalState->TempArena, Win32CopyMemory);
+; 244  :       Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
+
+  00172	48 8d 84 24 90
+	00 00 00	 lea	 rax, QWORD PTR $T7[rsp]
+  0017a	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  00182	48 8b f8	 mov	 rdi, rax
+  00185	48 8b f1	 mov	 rsi, rcx
+  00188	b9 10 00 00 00	 mov	 ecx, 16
+  0018d	f3 a4		 rep movsb
+  0018f	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  00195	33 d2		 xor	 edx, edx
+  00197	48 8d 8c 24 90
+	00 00 00	 lea	 rcx, QWORD PTR $T7[rsp]
+  0019f	e8 00 00 00 00	 call	 Win32LogMessage
+$LN5@Win32ReadE:
+
+; 245  :     }
+; 246  :   }
+
+  001a4	e9 9d 00 00 00	 jmp	 $LN3@Win32ReadE
 $LN2@Win32ReadE:
 
-; 182  :          BytesRead == FileSize)
-; 183  :       {
-; 184  :       }
-; 185  :       else
-; 186  :       {
-; 187  :         // TODO(evan): Logging
-; 188  :       }
-; 189  :     }
-; 190  :     else
-; 191  :     {
-; 192  :       // TODO(evan): Logging
-; 193  :     }
-; 194  :   }
-; 195  :   else
-; 196  :   {
-; 197  :     // TODO(evan): Logging
-; 198  :   }
-; 199  : }
+; 247  :   else
+; 248  :   {
+; 249  :     string8 Message =
 
-  0004d	48 83 c4 48	 add	 rsp, 72			; 00000048H
-  00051	c3		 ret	 0
+  001a9	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  001b0	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  001b6	48 8d 8c 24 a0
+	00 00 00	 lea	 rcx, QWORD PTR $T8[rsp]
+  001be	48 8b 94 24 20
+	01 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  001c6	48 8b f9	 mov	 rdi, rcx
+  001c9	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  001cd	b9 10 00 00 00	 mov	 ecx, 16
+  001d2	f3 a4		 rep movsb
+  001d4	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  001db	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  001e0	4c 8b c8	 mov	 r9, rax
+  001e3	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73189
+  001ea	48 8d 94 24 a0
+	00 00 00	 lea	 rdx, QWORD PTR $T8[rsp]
+  001f2	48 8d 8c 24 f0
+	00 00 00	 lea	 rcx, QWORD PTR $T13[rsp]
+  001fa	e8 00 00 00 00	 call	 CatStringsPlain
+  001ff	48 8d 8c 24 b0
+	00 00 00	 lea	 rcx, QWORD PTR Message$9[rsp]
+  00207	48 8b f9	 mov	 rdi, rcx
+  0020a	48 8b f0	 mov	 rsi, rax
+  0020d	b9 10 00 00 00	 mov	 ecx, 16
+  00212	f3 a4		 rep movsb
+
+; 250  :       CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32ReadEntireFile\n",
+; 251  :                       &GlobalState->TempArena, Win32CopyMemory);
+; 252  :     Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
+
+  00214	48 8d 84 24 c0
+	00 00 00	 lea	 rax, QWORD PTR $T10[rsp]
+  0021c	48 8d 8c 24 b0
+	00 00 00	 lea	 rcx, QWORD PTR Message$9[rsp]
+  00224	48 8b f8	 mov	 rdi, rax
+  00227	48 8b f1	 mov	 rsi, rcx
+  0022a	b9 10 00 00 00	 mov	 ecx, 16
+  0022f	f3 a4		 rep movsb
+  00231	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  00237	33 d2		 xor	 edx, edx
+  00239	48 8d 8c 24 c0
+	00 00 00	 lea	 rcx, QWORD PTR $T10[rsp]
+  00241	e8 00 00 00 00	 call	 Win32LogMessage
+$LN3@Win32ReadE:
+
+; 253  :   }
+; 254  : }
+
+  00246	48 81 c4 08 01
+	00 00		 add	 rsp, 264		; 00000108H
+  0024d	5f		 pop	 rdi
+  0024e	5e		 pop	 rsi
+  0024f	c3		 ret	 0
 Win32ReadEntireFile ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
-Result$ = 32
-FileSize$1 = 40
-Handle$ = 64
+Result$ = 48
+FileSize$1 = 56
+$T2 = 64
+Message$3 = 80
+$T4 = 96
+$T5 = 112
+Message$6 = 128
+$T7 = 144
+$T8 = 160
+$T9 = 176
+Handle$ = 224
 Win32GetFileSize PROC
 
-; 151  : {
+; 193  : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  00005	48 83 ec 38	 sub	 rsp, 56			; 00000038H
+  00005	56		 push	 rsi
+  00006	57		 push	 rdi
+  00007	48 81 ec c8 00
+	00 00		 sub	 rsp, 200		; 000000c8H
 
-; 152  :   u32 Result = 0;
+; 194  :   u32 Result = 0;
 
-  00009	c7 44 24 20 00
+  0000e	c7 44 24 30 00
 	00 00 00	 mov	 DWORD PTR Result$[rsp], 0
 
-; 153  :   
-; 154  :   if(Handle != INVALID_HANDLE_VALUE)
+; 195  :   
+; 196  :   if(Handle.Handle != INVALID_HANDLE_VALUE)
 
-  00011	48 83 7c 24 40
-	ff		 cmp	 QWORD PTR Handle$[rsp], -1
-  00017	74 22		 je	 SHORT $LN2@Win32GetFi
+  00016	48 8b 84 24 e0
+	00 00 00	 mov	 rax, QWORD PTR Handle$[rsp]
+  0001e	48 83 38 ff	 cmp	 QWORD PTR [rax], -1
+  00022	0f 84 bd 00 00
+	00		 je	 $LN2@Win32GetFi
 
-; 155  :   {
-; 156  :     LARGE_INTEGER FileSize;
-; 157  :     if(GetFileSizeEx(Handle, &FileSize))
+; 197  :   {
+; 198  :     LARGE_INTEGER FileSize;
+; 199  :     if(GetFileSizeEx(Handle.Handle, &FileSize))
 
-  00019	48 8d 54 24 28	 lea	 rdx, QWORD PTR FileSize$1[rsp]
-  0001e	48 8b 4c 24 40	 mov	 rcx, QWORD PTR Handle$[rsp]
-  00023	ff 15 00 00 00
+  00028	48 8d 54 24 38	 lea	 rdx, QWORD PTR FileSize$1[rsp]
+  0002d	48 8b 84 24 e0
+	00 00 00	 mov	 rax, QWORD PTR Handle$[rsp]
+  00035	48 8b 08	 mov	 rcx, QWORD PTR [rax]
+  00038	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetFileSizeEx
-  00029	85 c0		 test	 eax, eax
-  0002b	74 0e		 je	 SHORT $LN4@Win32GetFi
+  0003e	85 c0		 test	 eax, eax
+  00040	74 13		 je	 SHORT $LN4@Win32GetFi
 
-; 158  :     {
-; 159  :       Result = SafeTruncateUInt64(FileSize.QuadPart);
+; 200  :     {
+; 201  :       Result = SafeTruncateUInt64(FileSize.QuadPart);
 
-  0002d	48 8b 4c 24 28	 mov	 rcx, QWORD PTR FileSize$1[rsp]
-  00032	e8 00 00 00 00	 call	 SafeTruncateUInt64
-  00037	89 44 24 20	 mov	 DWORD PTR Result$[rsp], eax
+  00042	48 8b 4c 24 38	 mov	 rcx, QWORD PTR FileSize$1[rsp]
+  00047	e8 00 00 00 00	 call	 SafeTruncateUInt64
+  0004c	89 44 24 30	 mov	 DWORD PTR Result$[rsp], eax
+
+; 202  :     }
+
+  00050	e9 8b 00 00 00	 jmp	 $LN5@Win32GetFi
 $LN4@Win32GetFi:
+
+; 203  :     else
+; 204  :     {
+; 205  :       string8 Message = CatStringsPlain(Handle.FileName, ": could not GetFileSize in Win32GetFileSize\n",
+
+  00055	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  0005c	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  00062	48 8d 4c 24 40	 lea	 rcx, QWORD PTR $T2[rsp]
+  00067	48 8b 94 24 e0
+	00 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  0006f	48 8b f9	 mov	 rdi, rcx
+  00072	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  00076	b9 10 00 00 00	 mov	 ecx, 16
+  0007b	f3 a4		 rep movsb
+  0007d	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  00084	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  00089	4c 8b c8	 mov	 r9, rax
+  0008c	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73168
+  00093	48 8d 54 24 40	 lea	 rdx, QWORD PTR $T2[rsp]
+  00098	48 8d 8c 24 a0
+	00 00 00	 lea	 rcx, QWORD PTR $T8[rsp]
+  000a0	e8 00 00 00 00	 call	 CatStringsPlain
+  000a5	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000aa	48 8b f9	 mov	 rdi, rcx
+  000ad	48 8b f0	 mov	 rsi, rax
+  000b0	b9 10 00 00 00	 mov	 ecx, 16
+  000b5	f3 a4		 rep movsb
+
+; 206  :                                         &GlobalState->TempArena, Win32CopyMemory);
+; 207  :       Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
+
+  000b7	48 8d 44 24 60	 lea	 rax, QWORD PTR $T4[rsp]
+  000bc	48 8d 4c 24 50	 lea	 rcx, QWORD PTR Message$3[rsp]
+  000c1	48 8b f8	 mov	 rdi, rax
+  000c4	48 8b f1	 mov	 rsi, rcx
+  000c7	b9 10 00 00 00	 mov	 ecx, 16
+  000cc	f3 a4		 rep movsb
+  000ce	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  000d4	33 d2		 xor	 edx, edx
+  000d6	48 8d 4c 24 60	 lea	 rcx, QWORD PTR $T4[rsp]
+  000db	e8 00 00 00 00	 call	 Win32LogMessage
+$LN5@Win32GetFi:
+
+; 208  :     }
+; 209  :   }
+
+  000e0	e9 97 00 00 00	 jmp	 $LN3@Win32GetFi
 $LN2@Win32GetFi:
 
-; 160  :     }
-; 161  :     else
-; 162  :     {
-; 163  :       // TODO(evan): Logging
-; 164  :     }
-; 165  :   }
-; 166  :   else
-; 167  :   {
-; 168  :     // TODO(evan): Logging
-; 169  :   }
-; 170  :   
-; 171  :   return(Result);
+; 210  :   else
+; 211  :   {
+; 212  :     string8 Message =
 
-  0003b	8b 44 24 20	 mov	 eax, DWORD PTR Result$[rsp]
+  000e5	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  000ec	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  000f2	48 8d 4c 24 70	 lea	 rcx, QWORD PTR $T5[rsp]
+  000f7	48 8b 94 24 e0
+	00 00 00	 mov	 rdx, QWORD PTR Handle$[rsp]
+  000ff	48 8b f9	 mov	 rdi, rcx
+  00102	48 8d 72 08	 lea	 rsi, QWORD PTR [rdx+8]
+  00106	b9 10 00 00 00	 mov	 ecx, 16
+  0010b	f3 a4		 rep movsb
+  0010d	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  00114	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  00119	4c 8b c8	 mov	 r9, rax
+  0011c	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73169
+  00123	48 8d 54 24 70	 lea	 rdx, QWORD PTR $T5[rsp]
+  00128	48 8d 8c 24 b0
+	00 00 00	 lea	 rcx, QWORD PTR $T9[rsp]
+  00130	e8 00 00 00 00	 call	 CatStringsPlain
+  00135	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  0013d	48 8b f9	 mov	 rdi, rcx
+  00140	48 8b f0	 mov	 rsi, rax
+  00143	b9 10 00 00 00	 mov	 ecx, 16
+  00148	f3 a4		 rep movsb
 
-; 172  : }
+; 213  :       CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32GetFileSize\n",
+; 214  :                       &GlobalState->TempArena, Win32CopyMemory);
+; 215  :     Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
 
-  0003f	48 83 c4 38	 add	 rsp, 56			; 00000038H
-  00043	c3		 ret	 0
+  0014a	48 8d 84 24 90
+	00 00 00	 lea	 rax, QWORD PTR $T7[rsp]
+  00152	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR Message$6[rsp]
+  0015a	48 8b f8	 mov	 rdi, rax
+  0015d	48 8b f1	 mov	 rsi, rcx
+  00160	b9 10 00 00 00	 mov	 ecx, 16
+  00165	f3 a4		 rep movsb
+  00167	41 b8 01 00 00
+	00		 mov	 r8d, 1
+  0016d	33 d2		 xor	 edx, edx
+  0016f	48 8d 8c 24 90
+	00 00 00	 lea	 rcx, QWORD PTR $T7[rsp]
+  00177	e8 00 00 00 00	 call	 Win32LogMessage
+$LN3@Win32GetFi:
+
+; 216  :   }
+; 217  :   
+; 218  :   return(Result);
+
+  0017c	8b 44 24 30	 mov	 eax, DWORD PTR Result$[rsp]
+
+; 219  : }
+
+  00180	48 81 c4 c8 00
+	00 00		 add	 rsp, 200		; 000000c8H
+  00187	5f		 pop	 rdi
+  00188	5e		 pop	 rsi
+  00189	c3		 ret	 0
 Win32GetFileSize ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 ShareMode$ = 64
 AccessFlags$ = 68
 File$ = 72
-FileName$ = 96
-Flags$ = 104
+$T1 = 80
+$T2 = 96
+Result$ = 112
+__$ReturnAddress$ = 176
+FileName$ = 184
+Flags$ = 192
 Win32OpenFile PROC
 
-; 130  : {
+; 169  : {
 
-  00000	89 54 24 10	 mov	 DWORD PTR [rsp+16], edx
-  00004	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  00009	48 83 ec 58	 sub	 rsp, 88			; 00000058H
+  00000	44 89 44 24 18	 mov	 DWORD PTR [rsp+24], r8d
+  00005	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000a	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000f	56		 push	 rsi
+  00010	57		 push	 rdi
+  00011	48 81 ec 98 00
+	00 00		 sub	 rsp, 152		; 00000098H
 
-; 131  :   DWORD AccessFlags = 0;
+; 170  :   DWORD AccessFlags = 0;
 
-  0000d	c7 44 24 44 00
+  00018	c7 44 24 44 00
 	00 00 00	 mov	 DWORD PTR AccessFlags$[rsp], 0
 
-; 132  :   DWORD ShareMode = 0;
+; 171  :   DWORD ShareMode = 0;
 
-  00015	c7 44 24 40 00
+  00020	c7 44 24 40 00
 	00 00 00	 mov	 DWORD PTR ShareMode$[rsp], 0
 
-; 133  :   if(Flags & FILE_OPEN_READ)
+; 172  :   if(Flags & FILE_OPEN_READ)
 
-  0001d	8b 44 24 68	 mov	 eax, DWORD PTR Flags$[rsp]
-  00021	83 e0 01	 and	 eax, 1
-  00024	85 c0		 test	 eax, eax
-  00026	74 17		 je	 SHORT $LN2@Win32OpenF
+  00028	8b 84 24 c0 00
+	00 00		 mov	 eax, DWORD PTR Flags$[rsp]
+  0002f	83 e0 01	 and	 eax, 1
+  00032	85 c0		 test	 eax, eax
+  00034	74 17		 je	 SHORT $LN2@Win32OpenF
 
-; 134  :   {
-; 135  :     AccessFlags |= GENERIC_READ;
+; 173  :   {
+; 174  :     AccessFlags |= GENERIC_READ;
 
-  00028	8b 44 24 44	 mov	 eax, DWORD PTR AccessFlags$[rsp]
-  0002c	0f ba e8 1f	 bts	 eax, 31
-  00030	89 44 24 44	 mov	 DWORD PTR AccessFlags$[rsp], eax
+  00036	8b 44 24 44	 mov	 eax, DWORD PTR AccessFlags$[rsp]
+  0003a	0f ba e8 1f	 bts	 eax, 31
+  0003e	89 44 24 44	 mov	 DWORD PTR AccessFlags$[rsp], eax
 
-; 136  :     ShareMode |= FILE_SHARE_READ;
+; 175  :     ShareMode |= FILE_SHARE_READ;
 
-  00034	8b 44 24 40	 mov	 eax, DWORD PTR ShareMode$[rsp]
-  00038	83 c8 01	 or	 eax, 1
-  0003b	89 44 24 40	 mov	 DWORD PTR ShareMode$[rsp], eax
+  00042	8b 44 24 40	 mov	 eax, DWORD PTR ShareMode$[rsp]
+  00046	83 c8 01	 or	 eax, 1
+  00049	89 44 24 40	 mov	 DWORD PTR ShareMode$[rsp], eax
 $LN2@Win32OpenF:
 
-; 137  :   }
-; 138  :   if(Flags & FILE_OPEN_WRITE)
+; 176  :   }
+; 177  :   if(Flags & FILE_OPEN_WRITE)
 
-  0003f	8b 44 24 68	 mov	 eax, DWORD PTR Flags$[rsp]
-  00043	83 e0 02	 and	 eax, 2
-  00046	85 c0		 test	 eax, eax
-  00048	74 17		 je	 SHORT $LN3@Win32OpenF
+  0004d	8b 84 24 c0 00
+	00 00		 mov	 eax, DWORD PTR Flags$[rsp]
+  00054	83 e0 02	 and	 eax, 2
+  00057	85 c0		 test	 eax, eax
+  00059	74 17		 je	 SHORT $LN3@Win32OpenF
 
-; 139  :   {
-; 140  :     AccessFlags |= GENERIC_WRITE;
+; 178  :   {
+; 179  :     AccessFlags |= GENERIC_WRITE;
 
-  0004a	8b 44 24 44	 mov	 eax, DWORD PTR AccessFlags$[rsp]
-  0004e	0f ba e8 1e	 bts	 eax, 30
-  00052	89 44 24 44	 mov	 DWORD PTR AccessFlags$[rsp], eax
+  0005b	8b 44 24 44	 mov	 eax, DWORD PTR AccessFlags$[rsp]
+  0005f	0f ba e8 1e	 bts	 eax, 30
+  00063	89 44 24 44	 mov	 DWORD PTR AccessFlags$[rsp], eax
 
-; 141  :     ShareMode |= FILE_SHARE_WRITE;
+; 180  :     ShareMode |= FILE_SHARE_WRITE;
 
-  00056	8b 44 24 40	 mov	 eax, DWORD PTR ShareMode$[rsp]
-  0005a	83 c8 02	 or	 eax, 2
-  0005d	89 44 24 40	 mov	 DWORD PTR ShareMode$[rsp], eax
+  00067	8b 44 24 40	 mov	 eax, DWORD PTR ShareMode$[rsp]
+  0006b	83 c8 02	 or	 eax, 2
+  0006e	89 44 24 40	 mov	 DWORD PTR ShareMode$[rsp], eax
 $LN3@Win32OpenF:
 
-; 142  :   }
-; 143  :   
-; 144  :   HANDLE File = CreateFileA(FileName, AccessFlags, ShareMode, 0,
+; 181  :   }
+; 182  :   
+; 183  :   HANDLE File = CreateFileA(FileName.Str, AccessFlags, ShareMode, 0,
 
-  00061	48 c7 44 24 30
+  00072	48 c7 44 24 30
 	00 00 00 00	 mov	 QWORD PTR [rsp+48], 0
-  0006a	c7 44 24 28 80
+  0007b	c7 44 24 28 80
 	00 00 00	 mov	 DWORD PTR [rsp+40], 128	; 00000080H
-  00072	c7 44 24 20 03
+  00083	c7 44 24 20 03
 	00 00 00	 mov	 DWORD PTR [rsp+32], 3
-  0007a	45 33 c9	 xor	 r9d, r9d
-  0007d	44 8b 44 24 40	 mov	 r8d, DWORD PTR ShareMode$[rsp]
-  00082	8b 54 24 44	 mov	 edx, DWORD PTR AccessFlags$[rsp]
-  00086	48 8b 4c 24 60	 mov	 rcx, QWORD PTR FileName$[rsp]
-  0008b	ff 15 00 00 00
+  0008b	45 33 c9	 xor	 r9d, r9d
+  0008e	44 8b 44 24 40	 mov	 r8d, DWORD PTR ShareMode$[rsp]
+  00093	8b 54 24 44	 mov	 edx, DWORD PTR AccessFlags$[rsp]
+  00097	48 8b 84 24 b8
+	00 00 00	 mov	 rax, QWORD PTR FileName$[rsp]
+  0009f	48 8b 08	 mov	 rcx, QWORD PTR [rax]
+  000a2	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_CreateFileA
-  00091	48 89 44 24 48	 mov	 QWORD PTR File$[rsp], rax
+  000a8	48 89 44 24 48	 mov	 QWORD PTR File$[rsp], rax
 
-; 145  :                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
-; 146  :   
-; 147  :   return(File);
+; 184  :                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+; 185  :   
+; 186  :   platform_file_handle Result;
+; 187  :   Result.Handle = File;
 
-  00096	48 8b 44 24 48	 mov	 rax, QWORD PTR File$[rsp]
+  000ad	48 8b 44 24 48	 mov	 rax, QWORD PTR File$[rsp]
+  000b2	48 89 44 24 70	 mov	 QWORD PTR Result$[rsp], rax
 
-; 148  : }
+; 188  :   Result.FileName = DuplicateString(FileName, &GlobalState->PermArena, Win32CopyMemory);
 
-  0009b	48 83 c4 58	 add	 rsp, 88			; 00000058H
-  0009f	c3		 ret	 0
+  000b7	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  000be	48 05 c8 00 00
+	00		 add	 rax, 200		; 000000c8H
+  000c4	48 8d 4c 24 50	 lea	 rcx, QWORD PTR $T1[rsp]
+  000c9	48 8b f9	 mov	 rdi, rcx
+  000cc	48 8b b4 24 b8
+	00 00 00	 mov	 rsi, QWORD PTR FileName$[rsp]
+  000d4	b9 10 00 00 00	 mov	 ecx, 16
+  000d9	f3 a4		 rep movsb
+  000db	4c 8d 0d 00 00
+	00 00		 lea	 r9, OFFSET FLAT:Win32CopyMemory
+  000e2	4c 8b c0	 mov	 r8, rax
+  000e5	48 8d 54 24 50	 lea	 rdx, QWORD PTR $T1[rsp]
+  000ea	48 8d 4c 24 60	 lea	 rcx, QWORD PTR $T2[rsp]
+  000ef	e8 00 00 00 00	 call	 DuplicateString
+  000f4	48 8d 4c 24 78	 lea	 rcx, QWORD PTR Result$[rsp+8]
+  000f9	48 8b f9	 mov	 rdi, rcx
+  000fc	48 8b f0	 mov	 rsi, rax
+  000ff	b9 10 00 00 00	 mov	 ecx, 16
+  00104	f3 a4		 rep movsb
+
+; 189  :   return(Result);
+
+  00106	48 8d 44 24 70	 lea	 rax, QWORD PTR Result$[rsp]
+  0010b	48 8b bc 24 b0
+	00 00 00	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
+  00113	48 8b f0	 mov	 rsi, rax
+  00116	b9 18 00 00 00	 mov	 ecx, 24
+  0011b	f3 a4		 rep movsb
+  0011d	48 8b 84 24 b0
+	00 00 00	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
+
+; 190  : }
+
+  00125	48 81 c4 98 00
+	00 00		 add	 rsp, 152		; 00000098H
+  0012c	5f		 pop	 rdi
+  0012d	5e		 pop	 rsi
+  0012e	c3		 ret	 0
 Win32OpenFile ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 GameCode$ = 48
 Win32UnloadGameCode PROC
 
-; 118  : {
+; 157  : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	48 83 ec 28	 sub	 rsp, 40			; 00000028H
 
-; 119  :   if(GameCode->GameDll)
+; 158  :   if(GameCode->GameDll)
 
   00009	48 8b 44 24 30	 mov	 rax, QWORD PTR GameCode$[rsp]
   0000e	48 83 78 08 00	 cmp	 QWORD PTR [rax+8], 0
   00013	74 1c		 je	 SHORT $LN2@Win32Unloa
 
-; 120  :   {
-; 121  :     FreeLibrary(GameCode->GameDll);
+; 159  :   {
+; 160  :     FreeLibrary(GameCode->GameDll);
 
   00015	48 8b 44 24 30	 mov	 rax, QWORD PTR GameCode$[rsp]
   0001a	48 8b 48 08	 mov	 rcx, QWORD PTR [rax+8]
   0001e	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_FreeLibrary
 
-; 122  :     GameCode->GameDll = 0;
+; 161  :     GameCode->GameDll = 0;
 
   00024	48 8b 44 24 30	 mov	 rax, QWORD PTR GameCode$[rsp]
   00029	48 c7 40 08 00
 	00 00 00	 mov	 QWORD PTR [rax+8], 0
 $LN2@Win32Unloa:
 
-; 123  :   }
-; 124  :   
-; 125  :   GameCode->IsValid = false;
+; 162  :   }
+; 163  :   
+; 164  :   GameCode->IsValid = false;
 
   00031	48 8b 44 24 30	 mov	 rax, QWORD PTR GameCode$[rsp]
   00036	c7 00 00 00 00
 	00		 mov	 DWORD PTR [rax], 0
 
-; 126  :   GameCode->GameUpdateAndRender = GameUpdateAndRenderStub;
+; 165  :   GameCode->GameUpdateAndRender = GameUpdateAndRenderStub;
 
   0003c	48 8b 44 24 30	 mov	 rax, QWORD PTR GameCode$[rsp]
   00041	48 8d 0d 00 00
 	00 00		 lea	 rcx, OFFSET FLAT:GameUpdateAndRenderStub
   00048	48 89 48 18	 mov	 QWORD PTR [rax+24], rcx
 
-; 127  : }
+; 166  : }
 
   0004c	48 83 c4 28	 add	 rsp, 40			; 00000028H
   00050	c3		 ret	 0
 Win32UnloadGameCode ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
-tv85 = 32
-$S1$1 = 40
+tv86 = 32
+Error$1 = 36
+$S1$2 = 40
 Result$ = 48
 Ignored$ = 80
 __$ReturnAddress$ = 160
@@ -1474,7 +2048,7 @@ TempDllName$ = 176
 LockName$ = 184
 Win32LoadGameCode PROC
 
-; 88   : {
+; 126  : {
 
   00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
   00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
@@ -1485,7 +2059,7 @@ Win32LoadGameCode PROC
   00016	48 81 ec 88 00
 	00 00		 sub	 rsp, 136		; 00000088H
 
-; 89   :   win32_game_code Result = {0};
+; 127  :   win32_game_code Result = {0};
 
   0001d	48 8d 44 24 30	 lea	 rax, QWORD PTR Result$[rsp]
   00022	48 8b f8	 mov	 rdi, rax
@@ -1493,15 +2067,15 @@ Win32LoadGameCode PROC
   00027	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
   0002c	f3 aa		 rep stosb
 
-; 90   :   
-; 91   :   Result.LastWriteTime = Win32GetLastWriteTime(SourceDllName);
+; 128  :   
+; 129  :   Result.LastWriteTime = Win32GetLastWriteTime(SourceDllName);
 
   0002e	48 8b 8c 24 a8
 	00 00 00	 mov	 rcx, QWORD PTR SourceDllName$[rsp]
   00036	e8 00 00 00 00	 call	 Win32GetLastWriteTime
   0003b	48 89 44 24 40	 mov	 QWORD PTR Result$[rsp+16], rax
 
-; 92   :   CopyFileA(SourceDllName, TempDllName, false);
+; 130  :   CopyFileA(SourceDllName, TempDllName, false);
 
   00040	45 33 c0	 xor	 r8d, r8d
   00043	48 8b 94 24 b0
@@ -1511,9 +2085,9 @@ Win32LoadGameCode PROC
   00053	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_CopyFileA
 
-; 93   :   
-; 94   :   WIN32_FILE_ATTRIBUTE_DATA Ignored;
-; 95   :   if(!GetFileAttributesExA(LockName, GetFileExInfoStandard, &Ignored))
+; 131  :   
+; 132  :   WIN32_FILE_ATTRIBUTE_DATA Ignored;
+; 133  :   if(!GetFileAttributesExA(LockName, GetFileExInfoStandard, &Ignored))
 
   00059	4c 8d 44 24 50	 lea	 r8, QWORD PTR Ignored$[rsp]
   0005e	33 d2		 xor	 edx, edx
@@ -1522,10 +2096,10 @@ Win32LoadGameCode PROC
   00068	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetFileAttributesExA
   0006e	85 c0		 test	 eax, eax
-  00070	75 54		 jne	 SHORT $LN2@Win32LoadG
+  00070	75 5e		 jne	 SHORT $LN2@Win32LoadG
 
-; 96   :   {
-; 97   :     Result.GameDll = LoadLibraryA(TempDllName);
+; 134  :   {
+; 135  :     Result.GameDll = LoadLibraryA(TempDllName);
 
   00072	48 8b 8c 24 b0
 	00 00 00	 mov	 rcx, QWORD PTR TempDllName$[rsp]
@@ -1533,104 +2107,110 @@ Win32LoadGameCode PROC
 	00		 call	 QWORD PTR __imp_LoadLibraryA
   00080	48 89 44 24 38	 mov	 QWORD PTR Result$[rsp+8], rax
 
-; 98   :     if(Result.GameDll)
+; 136  :     DWORD Error = GetLastError();
 
-  00085	48 83 7c 24 38
+  00085	ff 15 00 00 00
+	00		 call	 QWORD PTR __imp_GetLastError
+  0008b	89 44 24 24	 mov	 DWORD PTR Error$1[rsp], eax
+
+; 137  :     if(Result.GameDll)
+
+  0008f	48 83 7c 24 38
 	00		 cmp	 QWORD PTR Result$[rsp+8], 0
-  0008b	74 39		 je	 SHORT $LN3@Win32LoadG
+  00095	74 39		 je	 SHORT $LN3@Win32LoadG
 
-; 99   :     {
-; 100  :       Result.GameUpdateAndRender =
+; 138  :     {
+; 139  :       Result.GameUpdateAndRender =
 
-  0008d	48 8d 15 00 00
-	00 00		 lea	 rdx, OFFSET FLAT:$SG73021
-  00094	48 8b 4c 24 38	 mov	 rcx, QWORD PTR Result$[rsp+8]
-  00099	ff 15 00 00 00
+  00097	48 8d 15 00 00
+	00 00		 lea	 rdx, OFFSET FLAT:$SG73139
+  0009e	48 8b 4c 24 38	 mov	 rcx, QWORD PTR Result$[rsp+8]
+  000a3	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetProcAddress
-  0009f	48 89 44 24 48	 mov	 QWORD PTR Result$[rsp+24], rax
+  000a9	48 89 44 24 48	 mov	 QWORD PTR Result$[rsp+24], rax
 
-; 101  :       (game_update_and_render *)GetProcAddress(Result.GameDll, "GameUpdateAndRender");
-; 102  :       
-; 103  :       Result.IsValid = Result.GameUpdateAndRender != 0;
+; 140  :       (game_update_and_render *)GetProcAddress(Result.GameDll, "GameUpdateAndRender");
+; 141  :       
+; 142  :       Result.IsValid = Result.GameUpdateAndRender != 0;
 
-  000a4	48 83 7c 24 48
+  000ae	48 83 7c 24 48
 	00		 cmp	 QWORD PTR Result$[rsp+24], 0
-  000aa	74 0a		 je	 SHORT $LN6@Win32LoadG
-  000ac	c7 44 24 20 01
-	00 00 00	 mov	 DWORD PTR tv85[rsp], 1
-  000b4	eb 08		 jmp	 SHORT $LN7@Win32LoadG
+  000b4	74 0a		 je	 SHORT $LN6@Win32LoadG
+  000b6	c7 44 24 20 01
+	00 00 00	 mov	 DWORD PTR tv86[rsp], 1
+  000be	eb 08		 jmp	 SHORT $LN7@Win32LoadG
 $LN6@Win32LoadG:
-  000b6	c7 44 24 20 00
-	00 00 00	 mov	 DWORD PTR tv85[rsp], 0
+  000c0	c7 44 24 20 00
+	00 00 00	 mov	 DWORD PTR tv86[rsp], 0
 $LN7@Win32LoadG:
-  000be	8b 44 24 20	 mov	 eax, DWORD PTR tv85[rsp]
-  000c2	89 44 24 30	 mov	 DWORD PTR Result$[rsp], eax
+  000c8	8b 44 24 20	 mov	 eax, DWORD PTR tv86[rsp]
+  000cc	89 44 24 30	 mov	 DWORD PTR Result$[rsp], eax
 $LN3@Win32LoadG:
 $LN2@Win32LoadG:
 
-; 104  :     }
-; 105  :   }
-; 106  :   
-; 107  :   if(!Result.IsValid)
+; 143  :     }
+; 144  :   }
+; 145  :   
+; 146  :   if(!Result.IsValid)
 
-  000c6	83 7c 24 30 00	 cmp	 DWORD PTR Result$[rsp], 0
-  000cb	75 27		 jne	 SHORT $LN4@Win32LoadG
+  000d0	83 7c 24 30 00	 cmp	 DWORD PTR Result$[rsp], 0
+  000d5	75 27		 jne	 SHORT $LN4@Win32LoadG
 
-; 108  :   {
-; 109  :     Result.GameUpdateAndRender = GameUpdateAndRenderStub;
+; 147  :   {
+; 148  :     Result.GameUpdateAndRender = GameUpdateAndRenderStub;
 
-  000cd	48 8d 05 00 00
+  000d7	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:GameUpdateAndRenderStub
-  000d4	48 89 44 24 48	 mov	 QWORD PTR Result$[rsp+24], rax
+  000de	48 89 44 24 48	 mov	 QWORD PTR Result$[rsp+24], rax
 
-; 110  :     Result.LastWriteTime = (FILETIME){0};
+; 149  :     Result.LastWriteTime = (FILETIME){0};
 
-  000d9	48 8d 44 24 28	 lea	 rax, QWORD PTR $S1$1[rsp]
-  000de	48 8b f8	 mov	 rdi, rax
-  000e1	33 c0		 xor	 eax, eax
-  000e3	b9 08 00 00 00	 mov	 ecx, 8
-  000e8	f3 aa		 rep stosb
-  000ea	48 8b 44 24 28	 mov	 rax, QWORD PTR $S1$1[rsp]
-  000ef	48 89 44 24 40	 mov	 QWORD PTR Result$[rsp+16], rax
+  000e3	48 8d 44 24 28	 lea	 rax, QWORD PTR $S1$2[rsp]
+  000e8	48 8b f8	 mov	 rdi, rax
+  000eb	33 c0		 xor	 eax, eax
+  000ed	b9 08 00 00 00	 mov	 ecx, 8
+  000f2	f3 aa		 rep stosb
+  000f4	48 8b 44 24 28	 mov	 rax, QWORD PTR $S1$2[rsp]
+  000f9	48 89 44 24 40	 mov	 QWORD PTR Result$[rsp+16], rax
 $LN4@Win32LoadG:
 
-; 111  :   }
-; 112  :   
-; 113  :   return(Result);
+; 150  :   }
+; 151  :   
+; 152  :   return(Result);
 
-  000f4	48 8d 44 24 30	 lea	 rax, QWORD PTR Result$[rsp]
-  000f9	48 8b bc 24 a0
+  000fe	48 8d 44 24 30	 lea	 rax, QWORD PTR Result$[rsp]
+  00103	48 8b bc 24 a0
 	00 00 00	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
-  00101	48 8b f0	 mov	 rsi, rax
-  00104	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
-  00109	f3 a4		 rep movsb
-  0010b	48 8b 84 24 a0
+  0010b	48 8b f0	 mov	 rsi, rax
+  0010e	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
+  00113	f3 a4		 rep movsb
+  00115	48 8b 84 24 a0
 	00 00 00	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
 
-; 114  : }
+; 153  : }
 
-  00113	48 81 c4 88 00
+  0011d	48 81 c4 88 00
 	00 00		 add	 rsp, 136		; 00000088H
-  0011a	5f		 pop	 rdi
-  0011b	5e		 pop	 rsi
-  0011c	c3		 ret	 0
+  00124	5f		 pop	 rdi
+  00125	5e		 pop	 rsi
+  00126	c3		 ret	 0
 Win32LoadGameCode ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 LastWriteTime$ = 32
 Data$ = 40
 FileName$ = 96
 Win32GetLastWriteTime PROC
 
-; 74   : {
+; 112  : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	57		 push	 rdi
   00006	48 83 ec 50	 sub	 rsp, 80			; 00000050H
 
-; 75   :   FILETIME LastWriteTime = {0};
+; 113  :   FILETIME LastWriteTime = {0};
 
   0000a	48 8d 44 24 20	 lea	 rax, QWORD PTR LastWriteTime$[rsp]
   0000f	48 8b f8	 mov	 rdi, rax
@@ -1638,9 +2218,9 @@ Win32GetLastWriteTime PROC
   00014	b9 08 00 00 00	 mov	 ecx, 8
   00019	f3 aa		 rep stosb
 
-; 76   :   
-; 77   :   WIN32_FILE_ATTRIBUTE_DATA Data;
-; 78   :   if(GetFileAttributesExA(FileName, GetFileExInfoStandard, &Data))
+; 114  :   
+; 115  :   WIN32_FILE_ATTRIBUTE_DATA Data;
+; 116  :   if(GetFileAttributesExA(FileName, GetFileExInfoStandard, &Data))
 
   0001b	4c 8d 44 24 28	 lea	 r8, QWORD PTR Data$[rsp]
   00020	33 d2		 xor	 edx, edx
@@ -1650,20 +2230,20 @@ Win32GetLastWriteTime PROC
   0002d	85 c0		 test	 eax, eax
   0002f	74 0a		 je	 SHORT $LN2@Win32GetLa
 
-; 79   :   {
-; 80   :     LastWriteTime = Data.ftLastWriteTime;
+; 117  :   {
+; 118  :     LastWriteTime = Data.ftLastWriteTime;
 
   00031	48 8b 44 24 3c	 mov	 rax, QWORD PTR Data$[rsp+20]
   00036	48 89 44 24 20	 mov	 QWORD PTR LastWriteTime$[rsp], rax
 $LN2@Win32GetLa:
 
-; 81   :   }
-; 82   :   
-; 83   :   return(LastWriteTime);
+; 119  :   }
+; 120  :   
+; 121  :   return(LastWriteTime);
 
   0003b	48 8b 44 24 20	 mov	 rax, QWORD PTR LastWriteTime$[rsp]
 
-; 84   : }
+; 122  : }
 
   00040	48 83 c4 50	 add	 rsp, 80			; 00000050H
   00044	5f		 pop	 rdi
@@ -1671,79 +2251,79 @@ $LN2@Win32GetLa:
 Win32GetLastWriteTime ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 XInputLibrary$ = 32
 Win32LoadXInput PROC
 
-; 54   : {
+; 92   : {
 
   00000	48 83 ec 38	 sub	 rsp, 56			; 00000038H
 
-; 55   :   HMODULE XInputLibrary = LoadLibraryA("Xinput9_1_0.dll");
+; 93   :   HMODULE XInputLibrary = LoadLibraryA("Xinput9_1_0.dll");
 
   00004	48 8d 0d 00 00
-	00 00		 lea	 rcx, OFFSET FLAT:$SG72995
+	00 00		 lea	 rcx, OFFSET FLAT:$SG73112
   0000b	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_LoadLibraryA
   00011	48 89 44 24 20	 mov	 QWORD PTR XInputLibrary$[rsp], rax
 
-; 56   :   if(!XInputLibrary)
+; 94   :   if(!XInputLibrary)
 
   00016	48 83 7c 24 20
 	00		 cmp	 QWORD PTR XInputLibrary$[rsp], 0
   0001c	75 2c		 jne	 SHORT $LN2@Win32LoadX
 
-; 57   :   {
-; 58   :     XInputLibrary = LoadLibraryA("Xinput1_4.dll");
+; 95   :   {
+; 96   :     XInputLibrary = LoadLibraryA("Xinput1_4.dll");
 
   0001e	48 8d 0d 00 00
-	00 00		 lea	 rcx, OFFSET FLAT:$SG72997
+	00 00		 lea	 rcx, OFFSET FLAT:$SG73114
   00025	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_LoadLibraryA
   0002b	48 89 44 24 20	 mov	 QWORD PTR XInputLibrary$[rsp], rax
 
-; 59   :     if(!XInputLibrary)
+; 97   :     if(!XInputLibrary)
 
   00030	48 83 7c 24 20
 	00		 cmp	 QWORD PTR XInputLibrary$[rsp], 0
   00036	75 12		 jne	 SHORT $LN3@Win32LoadX
 
-; 60   :     {
-; 61   :       XInputLibrary = LoadLibraryA("Xinput1_3.dll");
+; 98   :     {
+; 99   :       XInputLibrary = LoadLibraryA("Xinput1_3.dll");
 
   00038	48 8d 0d 00 00
-	00 00		 lea	 rcx, OFFSET FLAT:$SG72999
+	00 00		 lea	 rcx, OFFSET FLAT:$SG73116
   0003f	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_LoadLibraryA
   00045	48 89 44 24 20	 mov	 QWORD PTR XInputLibrary$[rsp], rax
 $LN3@Win32LoadX:
 $LN2@Win32LoadX:
 
-; 62   :     }
-; 63   :   }
-; 64   :   
-; 65   :   if(XInputLibrary)
+; 100  :     }
+; 101  :   }
+; 102  :   
+; 103  :   if(XInputLibrary)
 
   0004a	48 83 7c 24 20
 	00		 cmp	 QWORD PTR XInputLibrary$[rsp], 0
   00050	74 32		 je	 SHORT $LN4@Win32LoadX
 
-; 66   :   {
-; 67   :     XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
+; 104  :   {
+; 105  :     XInputGetState = (x_input_get_state *)GetProcAddress(XInputLibrary, "XInputGetState");
 
   00052	48 8d 15 00 00
-	00 00		 lea	 rdx, OFFSET FLAT:$SG73001
+	00 00		 lea	 rdx, OFFSET FLAT:$SG73118
   00059	48 8b 4c 24 20	 mov	 rcx, QWORD PTR XInputLibrary$[rsp]
   0005e	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetProcAddress
   00064	48 89 05 00 00
 	00 00		 mov	 QWORD PTR XInputGetState_, rax
 
-; 68   :     XInputSetState = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
+; 106  :     XInputSetState = (x_input_set_state *)GetProcAddress(XInputLibrary, "XInputSetState");
 
   0006b	48 8d 15 00 00
-	00 00		 lea	 rdx, OFFSET FLAT:$SG73002
+	00 00		 lea	 rdx, OFFSET FLAT:$SG73119
   00072	48 8b 4c 24 20	 mov	 rcx, QWORD PTR XInputLibrary$[rsp]
   00077	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetProcAddress
@@ -1751,93 +2331,322 @@ $LN2@Win32LoadX:
 	00 00		 mov	 QWORD PTR XInputSetState_, rax
 $LN4@Win32LoadX:
 
-; 69   :   }
-; 70   : }
+; 107  :   }
+; 108  : }
 
   00084	48 83 c4 38	 add	 rsp, 56			; 00000038H
   00088	c3		 ret	 0
 Win32LoadXInput ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
-Text$ = 48
+$T1 = 32
+$T2 = 48
+Message$ = 96
+FromEngine$ = 104
+Severity$ = 112
+Win32LogMessagePlain PROC
+
+; 86   : {
+
+  00000	44 89 44 24 18	 mov	 DWORD PTR [rsp+24], r8d
+  00005	89 54 24 10	 mov	 DWORD PTR [rsp+16], edx
+  00009	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000e	56		 push	 rsi
+  0000f	57		 push	 rdi
+  00010	48 83 ec 48	 sub	 rsp, 72			; 00000048H
+
+; 87   :   Win32LogMessage(CreateString(Message, &GlobalState->TempArena, Win32CopyMemory), FromEngine, Severity);
+
+  00014	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  0001b	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  00021	4c 8d 0d 00 00
+	00 00		 lea	 r9, OFFSET FLAT:Win32CopyMemory
+  00028	4c 8b c0	 mov	 r8, rax
+  0002b	48 8b 54 24 60	 mov	 rdx, QWORD PTR Message$[rsp]
+  00030	48 8d 4c 24 30	 lea	 rcx, QWORD PTR $T2[rsp]
+  00035	e8 00 00 00 00	 call	 CreateString
+  0003a	48 8d 4c 24 20	 lea	 rcx, QWORD PTR $T1[rsp]
+  0003f	48 8b f9	 mov	 rdi, rcx
+  00042	48 8b f0	 mov	 rsi, rax
+  00045	b9 10 00 00 00	 mov	 ecx, 16
+  0004a	f3 a4		 rep movsb
+  0004c	44 8b 44 24 70	 mov	 r8d, DWORD PTR Severity$[rsp]
+  00051	8b 54 24 68	 mov	 edx, DWORD PTR FromEngine$[rsp]
+  00055	48 8d 4c 24 20	 lea	 rcx, QWORD PTR $T1[rsp]
+  0005a	e8 00 00 00 00	 call	 Win32LogMessage
+
+; 88   : }
+
+  0005f	48 83 c4 48	 add	 rsp, 72			; 00000048H
+  00063	5f		 pop	 rdi
+  00064	5e		 pop	 rsi
+  00065	c3		 ret	 0
+Win32LogMessagePlain ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\win32.c
+_TEXT	SEGMENT
+Final$ = 48
+From$ = 64
+$T1 = 80
+$T2 = 96
+Header$ = 112
+$T3 = 128
+$T4 = 144
+$T5 = 160
+$T6 = 176
+$T7 = 192
+$T8 = 208
+Message$ = 256
+FromEngine$ = 264
+Severity$ = 272
+Win32LogMessage PROC
+
+; 68   : {
+
+  00000	44 89 44 24 18	 mov	 DWORD PTR [rsp+24], r8d
+  00005	89 54 24 10	 mov	 DWORD PTR [rsp+16], edx
+  00009	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000e	56		 push	 rsi
+  0000f	57		 push	 rdi
+  00010	48 81 ec e8 00
+	00 00		 sub	 rsp, 232		; 000000e8H
+
+; 69   :   string8 From;
+; 70   :   if(FromEngine)
+
+  00017	83 bc 24 08 01
+	00 00 00	 cmp	 DWORD PTR FromEngine$[rsp], 0
+  0001f	74 3f		 je	 SHORT $LN2@Win32LogMe
+
+; 71   :   {
+; 72   :     From = CreateString("[ENGINE]: ", &GlobalState->TempArena, Win32CopyMemory);
+
+  00021	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00028	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  0002e	4c 8d 0d 00 00
+	00 00		 lea	 r9, OFFSET FLAT:Win32CopyMemory
+  00035	4c 8b c0	 mov	 r8, rax
+  00038	48 8d 15 00 00
+	00 00		 lea	 rdx, OFFSET FLAT:$SG73099
+  0003f	48 8d 8c 24 a0
+	00 00 00	 lea	 rcx, QWORD PTR $T5[rsp]
+  00047	e8 00 00 00 00	 call	 CreateString
+  0004c	48 8d 4c 24 40	 lea	 rcx, QWORD PTR From$[rsp]
+  00051	48 8b f9	 mov	 rdi, rcx
+  00054	48 8b f0	 mov	 rsi, rax
+  00057	b9 10 00 00 00	 mov	 ecx, 16
+  0005c	f3 a4		 rep movsb
+
+; 73   :   }
+
+  0005e	eb 3d		 jmp	 SHORT $LN3@Win32LogMe
+$LN2@Win32LogMe:
+
+; 74   :   else
+; 75   :   {
+; 76   :     From = CreateString("[PLATFORM (WIN32)]: ", &GlobalState->TempArena, Win32CopyMemory);
+
+  00060	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00067	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  0006d	4c 8d 0d 00 00
+	00 00		 lea	 r9, OFFSET FLAT:Win32CopyMemory
+  00074	4c 8b c0	 mov	 r8, rax
+  00077	48 8d 15 00 00
+	00 00		 lea	 rdx, OFFSET FLAT:$SG73100
+  0007e	48 8d 8c 24 b0
+	00 00 00	 lea	 rcx, QWORD PTR $T6[rsp]
+  00086	e8 00 00 00 00	 call	 CreateString
+  0008b	48 8d 4c 24 40	 lea	 rcx, QWORD PTR From$[rsp]
+  00090	48 8b f9	 mov	 rdi, rcx
+  00093	48 8b f0	 mov	 rsi, rax
+  00096	b9 10 00 00 00	 mov	 ecx, 16
+  0009b	f3 a4		 rep movsb
+$LN3@Win32LogMe:
+
+; 77   :   }
+; 78   :   
+; 79   :   string8 Header = CatStrings(From, SeverityMessages[Severity], &GlobalState->TempArena, Win32CopyMemory);
+
+  0009d	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  000a4	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  000aa	48 63 8c 24 10
+	01 00 00	 movsxd	 rcx, DWORD PTR Severity$[rsp]
+  000b2	48 6b c9 10	 imul	 rcx, rcx, 16
+  000b6	48 8d 15 00 00
+	00 00		 lea	 rdx, OFFSET FLAT:SeverityMessages
+  000bd	48 8d 7c 24 50	 lea	 rdi, QWORD PTR $T1[rsp]
+  000c2	48 8d 34 0a	 lea	 rsi, QWORD PTR [rdx+rcx]
+  000c6	b9 10 00 00 00	 mov	 ecx, 16
+  000cb	f3 a4		 rep movsb
+  000cd	48 8d 4c 24 60	 lea	 rcx, QWORD PTR $T2[rsp]
+  000d2	48 8d 54 24 40	 lea	 rdx, QWORD PTR From$[rsp]
+  000d7	48 8b f9	 mov	 rdi, rcx
+  000da	48 8b f2	 mov	 rsi, rdx
+  000dd	b9 10 00 00 00	 mov	 ecx, 16
+  000e2	f3 a4		 rep movsb
+  000e4	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  000eb	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  000f0	4c 8b c8	 mov	 r9, rax
+  000f3	4c 8d 44 24 50	 lea	 r8, QWORD PTR $T1[rsp]
+  000f8	48 8d 54 24 60	 lea	 rdx, QWORD PTR $T2[rsp]
+  000fd	48 8d 8c 24 c0
+	00 00 00	 lea	 rcx, QWORD PTR $T7[rsp]
+  00105	e8 00 00 00 00	 call	 CatStrings
+  0010a	48 8d 4c 24 70	 lea	 rcx, QWORD PTR Header$[rsp]
+  0010f	48 8b f9	 mov	 rdi, rcx
+  00112	48 8b f0	 mov	 rsi, rax
+  00115	b9 10 00 00 00	 mov	 ecx, 16
+  0011a	f3 a4		 rep movsb
+
+; 80   :   string8 Final = CatStrings(Header, Message, &GlobalState->TempArena, Win32CopyMemory);
+
+  0011c	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00123	48 05 e0 00 00
+	00		 add	 rax, 224		; 000000e0H
+  00129	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR $T3[rsp]
+  00131	48 8b f9	 mov	 rdi, rcx
+  00134	48 8b b4 24 00
+	01 00 00	 mov	 rsi, QWORD PTR Message$[rsp]
+  0013c	b9 10 00 00 00	 mov	 ecx, 16
+  00141	f3 a4		 rep movsb
+  00143	48 8d 8c 24 90
+	00 00 00	 lea	 rcx, QWORD PTR $T4[rsp]
+  0014b	48 8d 54 24 70	 lea	 rdx, QWORD PTR Header$[rsp]
+  00150	48 8b f9	 mov	 rdi, rcx
+  00153	48 8b f2	 mov	 rsi, rdx
+  00156	b9 10 00 00 00	 mov	 ecx, 16
+  0015b	f3 a4		 rep movsb
+  0015d	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:Win32CopyMemory
+  00164	48 89 4c 24 20	 mov	 QWORD PTR [rsp+32], rcx
+  00169	4c 8b c8	 mov	 r9, rax
+  0016c	4c 8d 84 24 80
+	00 00 00	 lea	 r8, QWORD PTR $T3[rsp]
+  00174	48 8d 94 24 90
+	00 00 00	 lea	 rdx, QWORD PTR $T4[rsp]
+  0017c	48 8d 8c 24 d0
+	00 00 00	 lea	 rcx, QWORD PTR $T8[rsp]
+  00184	e8 00 00 00 00	 call	 CatStrings
+  00189	48 8d 4c 24 30	 lea	 rcx, QWORD PTR Final$[rsp]
+  0018e	48 8b f9	 mov	 rdi, rcx
+  00191	48 8b f0	 mov	 rsi, rax
+  00194	b9 10 00 00 00	 mov	 ecx, 16
+  00199	f3 a4		 rep movsb
+
+; 81   :   Final.Str[Final.Length] = '\0';
+
+  0019b	48 63 44 24 38	 movsxd	 rax, DWORD PTR Final$[rsp+8]
+  001a0	48 8b 4c 24 30	 mov	 rcx, QWORD PTR Final$[rsp]
+  001a5	c6 04 01 00	 mov	 BYTE PTR [rcx+rax], 0
+
+; 82   :   Win32OutputString(Final.Str);
+
+  001a9	48 8b 4c 24 30	 mov	 rcx, QWORD PTR Final$[rsp]
+  001ae	e8 00 00 00 00	 call	 Win32OutputString
+
+; 83   : }
+
+  001b3	48 81 c4 e8 00
+	00 00		 add	 rsp, 232		; 000000e8H
+  001ba	5f		 pop	 rdi
+  001bb	5e		 pop	 rsi
+  001bc	c3		 ret	 0
+Win32LogMessage ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\win32.c
+_TEXT	SEGMENT
+Str$ = 48
 Win32OutputString PROC
 
-; 48   : {
+; 63   : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	48 83 ec 28	 sub	 rsp, 40			; 00000028H
 
-; 49   :   OutputDebugStringA(Text);
+; 64   :   OutputDebugStringA(Str);
 
-  00009	48 8b 4c 24 30	 mov	 rcx, QWORD PTR Text$[rsp]
+  00009	48 8b 4c 24 30	 mov	 rcx, QWORD PTR Str$[rsp]
   0000e	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_OutputDebugStringA
 
-; 50   : }
+; 65   : }
 
   00014	48 83 c4 28	 add	 rsp, 40			; 00000028H
   00018	c3		 ret	 0
 Win32OutputString ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 dwUserIndex$ = 8
 pVibration$ = 16
 XInputSetStateStub PROC
 
-; 41   : {
+; 55   : {
 
   00000	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
   00005	89 4c 24 08	 mov	 DWORD PTR [rsp+8], ecx
 
-; 42   :   return(ERROR_DEVICE_NOT_CONNECTED);
+; 56   :   return(ERROR_DEVICE_NOT_CONNECTED);
 
   00009	b8 8f 04 00 00	 mov	 eax, 1167		; 0000048fH
 
-; 43   : }
+; 57   : }
 
   0000e	c3		 ret	 0
 XInputSetStateStub ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 dwUserIndex$ = 8
 pState$ = 16
 XInputGetStateStub PROC
 
-; 32   : {
+; 46   : {
 
   00000	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
   00005	89 4c 24 08	 mov	 DWORD PTR [rsp+8], ecx
 
-; 33   :   return(ERROR_DEVICE_NOT_CONNECTED);
+; 47   :   return(ERROR_DEVICE_NOT_CONNECTED);
 
   00009	b8 8f 04 00 00	 mov	 eax, 1167		; 0000048fH
 
-; 34   : }
+; 48   : }
 
   0000e	c3		 ret	 0
 XInputGetStateStub ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Dimension$ = 32
 ClientRect$ = 40
 Window$ = 80
 Win32GetWindowDimension PROC
 
-; 15   : {
+; 29   : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	57		 push	 rdi
   00006	48 83 ec 40	 sub	 rsp, 64			; 00000040H
 
-; 16   :   window_dimension Dimension = {0};
+; 30   :   window_dimension Dimension = {0};
 
   0000a	48 8d 44 24 20	 lea	 rax, QWORD PTR Dimension$[rsp]
   0000f	48 8b f8	 mov	 rdi, rax
@@ -1845,16 +2654,16 @@ Win32GetWindowDimension PROC
   00014	b9 08 00 00 00	 mov	 ecx, 8
   00019	f3 aa		 rep stosb
 
-; 17   :   
-; 18   :   RECT ClientRect;
-; 19   :   GetClientRect(Window, &ClientRect);
+; 31   :   
+; 32   :   RECT ClientRect;
+; 33   :   GetClientRect(Window, &ClientRect);
 
   0001b	48 8d 54 24 28	 lea	 rdx, QWORD PTR ClientRect$[rsp]
   00020	48 8b 4c 24 50	 mov	 rcx, QWORD PTR Window$[rsp]
   00025	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetClientRect
 
-; 20   :   Dimension.Width = ClientRect.right - ClientRect.left;
+; 34   :   Dimension.Width = ClientRect.right - ClientRect.left;
 
   0002b	8b 44 24 28	 mov	 eax, DWORD PTR ClientRect$[rsp]
   0002f	8b 4c 24 30	 mov	 ecx, DWORD PTR ClientRect$[rsp+8]
@@ -1862,7 +2671,7 @@ Win32GetWindowDimension PROC
   00035	8b c1		 mov	 eax, ecx
   00037	89 44 24 20	 mov	 DWORD PTR Dimension$[rsp], eax
 
-; 21   :   Dimension.Height = ClientRect.bottom - ClientRect.top;
+; 35   :   Dimension.Height = ClientRect.bottom - ClientRect.top;
 
   0003b	8b 44 24 2c	 mov	 eax, DWORD PTR ClientRect$[rsp+4]
   0003f	8b 4c 24 34	 mov	 ecx, DWORD PTR ClientRect$[rsp+12]
@@ -1870,11 +2679,11 @@ Win32GetWindowDimension PROC
   00045	8b c1		 mov	 eax, ecx
   00047	89 44 24 24	 mov	 DWORD PTR Dimension$[rsp+4], eax
 
-; 22   :   return(Dimension);
+; 36   :   return(Dimension);
 
   0004b	48 8b 44 24 20	 mov	 rax, QWORD PTR Dimension$[rsp]
 
-; 23   : }
+; 37   : }
 
   00050	48 83 c4 40	 add	 rsp, 64			; 00000040H
   00054	5f		 pop	 rdi
@@ -1882,53 +2691,108 @@ Win32GetWindowDimension PROC
 Win32GetWindowDimension ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\win32.c
+; File w:\new-horizons\code\win32.c
+_TEXT	SEGMENT
+Dest$ = 16
+Length$ = 24
+Win32ZeroMemory PROC
+
+; 23   : {
+
+  00000	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  00005	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000a	57		 push	 rdi
+
+; 24   :   RtlZeroMemory(Dest, Length);
+
+  0000b	48 8b 7c 24 10	 mov	 rdi, QWORD PTR Dest$[rsp]
+  00010	33 c0		 xor	 eax, eax
+  00012	48 8b 4c 24 18	 mov	 rcx, QWORD PTR Length$[rsp]
+  00017	f3 aa		 rep stosb
+
+; 25   : }
+
+  00019	5f		 pop	 rdi
+  0001a	c3		 ret	 0
+Win32ZeroMemory ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\win32.c
+_TEXT	SEGMENT
+Dest$ = 24
+Source$ = 32
+Length$ = 40
+Win32CopyMemory PROC
+
+; 18   : {
+
+  00000	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  00005	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000a	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000f	56		 push	 rsi
+  00010	57		 push	 rdi
+
+; 19   :   RtlCopyMemory(Dest, Source, Length);
+
+  00011	48 8b 7c 24 18	 mov	 rdi, QWORD PTR Dest$[rsp]
+  00016	48 8b 74 24 20	 mov	 rsi, QWORD PTR Source$[rsp]
+  0001b	48 8b 4c 24 28	 mov	 rcx, QWORD PTR Length$[rsp]
+  00020	f3 a4		 rep movsb
+
+; 20   : }
+
+  00022	5f		 pop	 rdi
+  00023	5e		 pop	 rsi
+  00024	c3		 ret	 0
+Win32CopyMemory ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\win32.c
 _TEXT	SEGMENT
 Input$1 = 96
 Pad$2 = 104
-tv89 = 112
+tv160 = 112
 Win32RefreshRate$3 = 116
 MonitorRefreshHz$4 = 120
-tv298 = 124
-tv306 = 128
+tv337 = 124
+tv345 = 128
 Vibration$5 = 132
 ShouldClose$6 = 136
 DesiredSchedularMS$ = 140
 GameUpdateHz$7 = 144
-WindowResized$8 = 148
-DeltaTime$9 = 152
-GameCodeDllName$ = 160
-NewWindowDimension$10 = 168
-PlatformMemorySize$11 = 176
-GameCodeTempDllName$ = 184
-Center$12 = 192
-EndCounter$13 = 200
-LastCounter$14 = 208
-GameCodeLockName$ = 216
-SleepIsGranular$ = 224
-TargetSecondsPerFrame$15 = 228
-TotalEngineMemorySize$16 = 232
+DeltaTime$8 = 148
+GameCodeDllName$ = 152
+NewWindowDimension$9 = 160
+PlatformPermMemorySize$10 = 168
+PlatformTempMemorySize$11 = 176
+EndCounter$12 = 184
+LastCounter$13 = 192
+GameCodeLockName$ = 200
+GameCodeTempDllName$ = 208
+SleepIsGranular$ = 216
+TargetSecondsPerFrame$14 = 220
+PlatformMemorySize$15 = 224
+TotalGameMemorySize$16 = 232
 BaseAddress$17 = 240
 PerfCountFrequencyResult$ = 248
 DeviceContext$18 = 256
 NewDllWriteTime$19 = 264
-ControllerState$20 = 272
-WindowRect$21 = 288
-EngineMemory$ = 304
-Game$22 = 400
+GameMemory$ = 272
+ControllerState$20 = 384
+Game$21 = 400
 WindowClass$ = 432
-Message$23 = 512
-$T24 = 560
-$T25 = 592
+Message$22 = 512
+$T23 = 560
+$T24 = 592
 Instance$ = 656
 PrevInstance$ = 664
 CmdLine$ = 672
 CmdShow$ = 680
 WinMain	PROC
 
-; 269  : {
+; 319  : {
 
-$LN25:
+$LN24:
   00000	44 89 4c 24 20	 mov	 DWORD PTR [rsp+32], r9d
   00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
   0000a	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
@@ -1938,1039 +2802,1458 @@ $LN25:
   00016	48 81 ec 78 02
 	00 00		 sub	 rsp, 632		; 00000278H
 
-; 270  :   // Assert((uint64)(*((int64*)__readgsqword(0x60) + 0x23)) >= 10);
-; 271  :   
-; 272  :   memory EngineMemory = {0};
+; 320  :   // Assert((uint64)(*((int64*)__readgsqword(0x60) + 0x23)) >= 10);
+; 321  :   
+; 322  :   memory GameMemory = {0};
 
-  0001d	48 8d 84 24 30
-	01 00 00	 lea	 rax, QWORD PTR EngineMemory$[rsp]
+  0001d	48 8d 84 24 10
+	01 00 00	 lea	 rax, QWORD PTR GameMemory$[rsp]
   00025	48 8b f8	 mov	 rdi, rax
   00028	33 c0		 xor	 eax, eax
-  0002a	b9 60 00 00 00	 mov	 ecx, 96			; 00000060H
+  0002a	b9 68 00 00 00	 mov	 ecx, 104		; 00000068H
   0002f	f3 aa		 rep stosb
 
-; 273  :   {
-; 274  : #if HORIZONS_INTERNAL
-; 275  :     LPVOID BaseAddress = (LPVOID)Tebibytes(2);
+; 323  :   {
+; 324  : #if HORIZONS_INTERNAL
+; 325  :     LPVOID BaseAddress = (LPVOID)Tebibytes(2);
 
   00031	48 b8 00 00 00
 	00 00 02 00 00	 mov	 rax, 2199023255552	; 0000020000000000H
   0003b	48 89 84 24 f0
 	00 00 00	 mov	 QWORD PTR BaseAddress$17[rsp], rax
 
-; 276  : #else
-; 277  :     LPVOID BaseAddress = 0;
-; 278  : #endif
-; 279  :     
-; 280  :     EngineMemory.PermanentStorageSize = Mebibytes(64);
+; 326  : #else
+; 327  :     LPVOID BaseAddress = 0;
+; 328  : #endif
+; 329  :     
+; 330  :     GameMemory.PermanentStorageSize = Mebibytes(64);
 
-  00043	48 c7 84 24 30
+  00043	48 c7 84 24 10
 	01 00 00 00 00
-	00 04		 mov	 QWORD PTR EngineMemory$[rsp], 67108864 ; 04000000H
+	00 04		 mov	 QWORD PTR GameMemory$[rsp], 67108864 ; 04000000H
 
-; 281  :     EngineMemory.TempStorageSize = Gibibytes(1);
+; 331  :     GameMemory.TempStorageSize = Gibibytes(1);
 
-  0004f	48 c7 84 24 40
+  0004f	48 c7 84 24 20
 	01 00 00 00 00
-	00 40		 mov	 QWORD PTR EngineMemory$[rsp+16], 1073741824 ; 40000000H
+	00 40		 mov	 QWORD PTR GameMemory$[rsp+16], 1073741824 ; 40000000H
 
-; 282  :     
-; 283  :     EngineMemory.OpenFile = Win32OpenFile;
+; 332  :     
+; 333  :     GameMemory.OpenFile = Win32OpenFile;
 
   0005b	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32OpenFile
-  00062	48 89 84 24 50
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+32], rax
+  00062	48 89 84 24 30
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+32], rax
 
-; 284  :     EngineMemory.GetFileSize = Win32GetFileSize;
+; 334  :     GameMemory.GetFileSize = Win32GetFileSize;
 
   0006a	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32GetFileSize
-  00071	48 89 84 24 58
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+40], rax
+  00071	48 89 84 24 38
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+40], rax
 
-; 285  :     EngineMemory.ReadEntireFile = Win32ReadEntireFile;
+; 335  :     GameMemory.ReadEntireFile = Win32ReadEntireFile;
 
   00079	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32ReadEntireFile
-  00080	48 89 84 24 68
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+56], rax
+  00080	48 89 84 24 40
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+48], rax
 
-; 286  :     EngineMemory.WriteEntireFile = Win32WriteEntireFile;
+; 336  :     GameMemory.WriteEntireFile = Win32WriteEntireFile;
 
   00088	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32WriteEntireFile
-  0008f	48 89 84 24 70
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+64], rax
+  0008f	48 89 84 24 48
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+56], rax
 
-; 287  :     EngineMemory.CloseFile = Win32CloseFile;
+; 337  :     GameMemory.CloseFile = Win32CloseFile;
 
   00097	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32CloseFile
-  0009e	48 89 84 24 78
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+72], rax
+  0009e	48 89 84 24 50
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+64], rax
 
-; 288  :     EngineMemory.OutputString = Win32OutputString;
+; 338  :     GameMemory.LogMessage = Win32LogMessage;
 
   000a6	48 8d 05 00 00
-	00 00		 lea	 rax, OFFSET FLAT:Win32OutputString
-  000ad	48 89 84 24 60
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+48], rax
+	00 00		 lea	 rax, OFFSET FLAT:Win32LogMessage
+  000ad	48 89 84 24 58
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+72], rax
 
-; 289  :     
-; 290  :     memory_index PlatformMemorySize = Mebibytes(64);
+; 339  :     GameMemory.LogMessagePlain = Win32LogMessagePlain;
 
-  000b5	48 c7 84 24 b0
+  000b5	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:Win32LogMessagePlain
+  000bc	48 89 84 24 60
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+80], rax
+
+; 340  :     
+; 341  :     GameMemory.CopyMemory = Win32CopyMemory;
+
+  000c4	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:Win32CopyMemory
+  000cb	48 89 84 24 68
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+88], rax
+
+; 342  :     GameMemory.ZeroMemory = Win32ZeroMemory;
+
+  000d3	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:Win32ZeroMemory
+  000da	48 89 84 24 70
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+96], rax
+
+; 343  :     
+; 344  :     memory_index PlatformPermMemorySize = Mebibytes(64);
+
+  000e2	48 c7 84 24 a8
 	00 00 00 00 00
-	00 04		 mov	 QWORD PTR PlatformMemorySize$11[rsp], 67108864 ; 04000000H
+	00 04		 mov	 QWORD PTR PlatformPermMemorySize$10[rsp], 67108864 ; 04000000H
 
-; 291  :     
-; 292  :     memory_index TotalEngineMemorySize = EngineMemory.PermanentStorageSize + EngineMemory.TempStorageSize + PlatformMemorySize;
+; 345  :     memory_index PlatformTempMemorySize = Mebibytes(64);
 
-  000c1	48 8b 84 24 40
-	01 00 00	 mov	 rax, QWORD PTR EngineMemory$[rsp+16]
-  000c9	48 8b 8c 24 30
-	01 00 00	 mov	 rcx, QWORD PTR EngineMemory$[rsp]
-  000d1	48 03 c8	 add	 rcx, rax
-  000d4	48 8b c1	 mov	 rax, rcx
-  000d7	48 03 84 24 b0
-	00 00 00	 add	 rax, QWORD PTR PlatformMemorySize$11[rsp]
-  000df	48 89 84 24 e8
-	00 00 00	 mov	 QWORD PTR TotalEngineMemorySize$16[rsp], rax
+  000ee	48 c7 84 24 b0
+	00 00 00 00 00
+	00 04		 mov	 QWORD PTR PlatformTempMemorySize$11[rsp], 67108864 ; 04000000H
 
-; 293  :     GlobalState = VirtualAlloc(BaseAddress, sizeof(win32_state) + TotalEngineMemorySize,
+; 346  :     memory_index PlatformMemorySize = PlatformPermMemorySize + PlatformTempMemorySize;
 
-  000e7	48 8b 84 24 e8
-	00 00 00	 mov	 rax, QWORD PTR TotalEngineMemorySize$16[rsp]
-  000ef	48 05 e8 00 00
-	00		 add	 rax, 232		; 000000e8H
-  000f5	41 b9 04 00 00
+  000fa	48 8b 84 24 b0
+	00 00 00	 mov	 rax, QWORD PTR PlatformTempMemorySize$11[rsp]
+  00102	48 8b 8c 24 a8
+	00 00 00	 mov	 rcx, QWORD PTR PlatformPermMemorySize$10[rsp]
+  0010a	48 03 c8	 add	 rcx, rax
+  0010d	48 8b c1	 mov	 rax, rcx
+  00110	48 89 84 24 e0
+	00 00 00	 mov	 QWORD PTR PlatformMemorySize$15[rsp], rax
+
+; 347  :     
+; 348  :     memory_index TotalGameMemorySize = (GameMemory.PermanentStorageSize +
+
+  00118	48 8b 84 24 20
+	01 00 00	 mov	 rax, QWORD PTR GameMemory$[rsp+16]
+  00120	48 8b 8c 24 10
+	01 00 00	 mov	 rcx, QWORD PTR GameMemory$[rsp]
+  00128	48 03 c8	 add	 rcx, rax
+  0012b	48 8b c1	 mov	 rax, rcx
+  0012e	48 03 84 24 e0
+	00 00 00	 add	 rax, QWORD PTR PlatformMemorySize$15[rsp]
+  00136	48 89 84 24 e8
+	00 00 00	 mov	 QWORD PTR TotalGameMemorySize$16[rsp], rax
+
+; 349  :                                         GameMemory.TempStorageSize +
+; 350  :                                         PlatformMemorySize);
+; 351  :     GlobalState = VirtualAlloc(BaseAddress, sizeof(win32_state) + TotalGameMemorySize,
+
+  0013e	48 8b 84 24 e8
+	00 00 00	 mov	 rax, QWORD PTR TotalGameMemorySize$16[rsp]
+  00146	48 05 00 01 00
+	00		 add	 rax, 256		; 00000100H
+  0014c	41 b9 04 00 00
 	00		 mov	 r9d, 4
-  000fb	41 b8 00 30 00
+  00152	41 b8 00 30 00
 	00		 mov	 r8d, 12288		; 00003000H
-  00101	48 8b d0	 mov	 rdx, rax
-  00104	48 8b 8c 24 f0
+  00158	48 8b d0	 mov	 rdx, rax
+  0015b	48 8b 8c 24 f0
 	00 00 00	 mov	 rcx, QWORD PTR BaseAddress$17[rsp]
-  0010c	ff 15 00 00 00
+  00163	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_VirtualAlloc
-  00112	48 89 05 00 00
+  00169	48 89 05 00 00
 	00 00		 mov	 QWORD PTR GlobalState, rax
 
-; 294  :                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-; 295  :     
-; 296  :     InitializeArena(&GlobalState->Arena, (u8 *)GlobalState + sizeof(win32_state), PlatformMemorySize);
+; 352  :                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+; 353  :     
+; 354  :     InitializeArena(&GlobalState->PermArena,
 
-  00119	48 8b 05 00 00
+  00170	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00120	48 05 e8 00 00
-	00		 add	 rax, 232		; 000000e8H
-  00126	48 8b 0d 00 00
+  00177	48 05 00 01 00
+	00		 add	 rax, 256		; 00000100H
+  0017d	48 8b 0d 00 00
 	00 00		 mov	 rcx, QWORD PTR GlobalState
-  0012d	48 81 c1 c8 00
+  00184	48 81 c1 c8 00
 	00 00		 add	 rcx, 200		; 000000c8H
-  00134	4c 8b 84 24 b0
-	00 00 00	 mov	 r8, QWORD PTR PlatformMemorySize$11[rsp]
-  0013c	48 8b d0	 mov	 rdx, rax
-  0013f	e8 00 00 00 00	 call	 InitializeArena
+  0018b	4c 8b 84 24 a8
+	00 00 00	 mov	 r8, QWORD PTR PlatformPermMemorySize$10[rsp]
+  00193	48 8b d0	 mov	 rdx, rax
+  00196	e8 00 00 00 00	 call	 InitializeArena
 
-; 297  :     EngineMemory.PermanentStorage = GlobalState->Arena.Memory + PlatformMemorySize;
+; 355  :                     (u8 *)GlobalState + sizeof(win32_state),
+; 356  :                     PlatformPermMemorySize);
+; 357  :     InitializeArena(&GlobalState->TempArena,
 
-  00144	48 8b 05 00 00
+  0019b	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  0014b	48 8b 80 c8 00
+  001a2	48 8b 80 c8 00
 	00 00		 mov	 rax, QWORD PTR [rax+200]
-  00152	48 03 84 24 b0
-	00 00 00	 add	 rax, QWORD PTR PlatformMemorySize$11[rsp]
-  0015a	48 89 84 24 38
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+8], rax
+  001a9	48 03 84 24 a8
+	00 00 00	 add	 rax, QWORD PTR PlatformPermMemorySize$10[rsp]
+  001b1	48 8b 0d 00 00
+	00 00		 mov	 rcx, QWORD PTR GlobalState
+  001b8	48 81 c1 e0 00
+	00 00		 add	 rcx, 224		; 000000e0H
+  001bf	4c 8b 84 24 b0
+	00 00 00	 mov	 r8, QWORD PTR PlatformTempMemorySize$11[rsp]
+  001c7	48 8b d0	 mov	 rdx, rax
+  001ca	e8 00 00 00 00	 call	 InitializeArena
 
-; 298  :     EngineMemory.TempStorage = (u8 *)EngineMemory.PermanentStorage + EngineMemory.PermanentStorageSize;
+; 358  :                     GlobalState->PermArena.Memory + PlatformPermMemorySize,
+; 359  :                     PlatformTempMemorySize);
+; 360  :     GameMemory.PermanentStorage = GlobalState->TempArena.Memory + PlatformTempMemorySize;
 
-  00162	48 8b 84 24 30
-	01 00 00	 mov	 rax, QWORD PTR EngineMemory$[rsp]
-  0016a	48 8b 8c 24 38
-	01 00 00	 mov	 rcx, QWORD PTR EngineMemory$[rsp+8]
-  00172	48 03 c8	 add	 rcx, rax
-  00175	48 8b c1	 mov	 rax, rcx
-  00178	48 89 84 24 48
-	01 00 00	 mov	 QWORD PTR EngineMemory$[rsp+24], rax
+  001cf	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  001d6	48 8b 80 e0 00
+	00 00		 mov	 rax, QWORD PTR [rax+224]
+  001dd	48 03 84 24 b0
+	00 00 00	 add	 rax, QWORD PTR PlatformTempMemorySize$11[rsp]
+  001e5	48 89 84 24 18
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+8], rax
 
-; 299  :   }
-; 300  :   
-; 301  :   LARGE_INTEGER PerfCountFrequencyResult;
-; 302  :   QueryPerformanceFrequency(&PerfCountFrequencyResult);
+; 361  :     GameMemory.TempStorage = (u8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize;
 
-  00180	48 8d 8c 24 f8
+  001ed	48 8b 84 24 10
+	01 00 00	 mov	 rax, QWORD PTR GameMemory$[rsp]
+  001f5	48 8b 8c 24 18
+	01 00 00	 mov	 rcx, QWORD PTR GameMemory$[rsp+8]
+  001fd	48 03 c8	 add	 rcx, rax
+  00200	48 8b c1	 mov	 rax, rcx
+  00203	48 89 84 24 28
+	01 00 00	 mov	 QWORD PTR GameMemory$[rsp+24], rax
+
+; 362  :   }
+; 363  :   
+; 364  :   LARGE_INTEGER PerfCountFrequencyResult;
+; 365  :   QueryPerformanceFrequency(&PerfCountFrequencyResult);
+
+  0020b	48 8d 8c 24 f8
 	00 00 00	 lea	 rcx, QWORD PTR PerfCountFrequencyResult$[rsp]
-  00188	ff 15 00 00 00
+  00213	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_QueryPerformanceFrequency
 
-; 303  :   GlobalState->PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
+; 366  :   GlobalState->PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
 
-  0018e	48 8b 05 00 00
+  00219	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00195	48 8b 8c 24 f8
+  00220	48 8b 8c 24 f8
 	00 00 00	 mov	 rcx, QWORD PTR PerfCountFrequencyResult$[rsp]
-  0019d	48 89 88 a8 00
+  00228	48 89 88 a8 00
 	00 00		 mov	 QWORD PTR [rax+168], rcx
 
-; 304  :   
-; 305  :   // NOTE(evan): Set the Windows schedular granularity to 1ms
-; 306  :   // so that Sleep() can be more granular
-; 307  :   UINT DesiredSchedularMS = 1;
+; 367  :   
+; 368  :   // NOTE(evan): Set the Windows schedular granularity to 1ms
+; 369  :   // so that Sleep() can be more granular
+; 370  :   UINT DesiredSchedularMS = 1;
 
-  001a4	c7 84 24 8c 00
+  0022f	c7 84 24 8c 00
 	00 00 01 00 00
 	00		 mov	 DWORD PTR DesiredSchedularMS$[rsp], 1
 
-; 308  :   b32 SleepIsGranular = (timeBeginPeriod(DesiredSchedularMS) == TIMERR_NOERROR);
+; 371  :   b32 SleepIsGranular = (timeBeginPeriod(DesiredSchedularMS) == TIMERR_NOERROR);
 
-  001af	8b 8c 24 8c 00
+  0023a	8b 8c 24 8c 00
 	00 00		 mov	 ecx, DWORD PTR DesiredSchedularMS$[rsp]
-  001b6	ff 15 00 00 00
+  00241	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_timeBeginPeriod
-  001bc	85 c0		 test	 eax, eax
-  001be	75 0a		 jne	 SHORT $LN19@WinMain
-  001c0	c7 44 24 70 01
-	00 00 00	 mov	 DWORD PTR tv89[rsp], 1
-  001c8	eb 08		 jmp	 SHORT $LN20@WinMain
+  00247	85 c0		 test	 eax, eax
+  00249	75 0a		 jne	 SHORT $LN18@WinMain
+  0024b	c7 44 24 70 01
+	00 00 00	 mov	 DWORD PTR tv160[rsp], 1
+  00253	eb 08		 jmp	 SHORT $LN19@WinMain
+$LN18@WinMain:
+  00255	c7 44 24 70 00
+	00 00 00	 mov	 DWORD PTR tv160[rsp], 0
 $LN19@WinMain:
-  001ca	c7 44 24 70 00
-	00 00 00	 mov	 DWORD PTR tv89[rsp], 0
-$LN20@WinMain:
-  001d2	8b 44 24 70	 mov	 eax, DWORD PTR tv89[rsp]
-  001d6	89 84 24 e0 00
+  0025d	8b 44 24 70	 mov	 eax, DWORD PTR tv160[rsp]
+  00261	89 84 24 d8 00
 	00 00		 mov	 DWORD PTR SleepIsGranular$[rsp], eax
 
-; 309  :   
-; 310  :   Win32LoadXInput();
+; 372  :   
+; 373  :   Win32LoadXInput();
 
-  001dd	e8 00 00 00 00	 call	 Win32LoadXInput
+  00268	e8 00 00 00 00	 call	 Win32LoadXInput
 
-; 311  :   
-; 312  :   WNDCLASSW WindowClass = {0};
+; 374  :   
+; 375  :   WNDCLASSW WindowClass = {0};
 
-  001e2	48 8d 84 24 b0
+  0026d	48 8d 84 24 b0
 	01 00 00	 lea	 rax, QWORD PTR WindowClass$[rsp]
-  001ea	48 8b f8	 mov	 rdi, rax
-  001ed	33 c0		 xor	 eax, eax
-  001ef	b9 48 00 00 00	 mov	 ecx, 72			; 00000048H
-  001f4	f3 aa		 rep stosb
+  00275	48 8b f8	 mov	 rdi, rax
+  00278	33 c0		 xor	 eax, eax
+  0027a	b9 48 00 00 00	 mov	 ecx, 72			; 00000048H
+  0027f	f3 aa		 rep stosb
 
-; 313  :   WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
+; 376  :   WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
 
-  001f6	c7 84 24 b0 01
+  00281	c7 84 24 b0 01
 	00 00 23 00 00
 	00		 mov	 DWORD PTR WindowClass$[rsp], 35 ; 00000023H
 
-; 314  :   WindowClass.lpfnWndProc = Win32WindowProc;
+; 377  :   WindowClass.lpfnWndProc = Win32WindowProc;
 
-  00201	48 8d 05 00 00
+  0028c	48 8d 05 00 00
 	00 00		 lea	 rax, OFFSET FLAT:Win32WindowProc
-  00208	48 89 84 24 b8
+  00293	48 89 84 24 b8
 	01 00 00	 mov	 QWORD PTR WindowClass$[rsp+8], rax
 
-; 315  :   WindowClass.hInstance = Instance;
+; 378  :   WindowClass.hInstance = Instance;
 
-  00210	48 8b 84 24 90
+  0029b	48 8b 84 24 90
 	02 00 00	 mov	 rax, QWORD PTR Instance$[rsp]
-  00218	48 89 84 24 c8
+  002a3	48 89 84 24 c8
 	01 00 00	 mov	 QWORD PTR WindowClass$[rsp+24], rax
 
-; 316  :   WindowClass.hCursor = LoadCursorW(0, IDC_ARROW);
+; 379  :   WindowClass.hCursor = LoadCursorW(0, IDC_ARROW);
 
-  00220	ba 00 7f 00 00	 mov	 edx, 32512		; 00007f00H
-  00225	33 c9		 xor	 ecx, ecx
-  00227	ff 15 00 00 00
+  002ab	ba 00 7f 00 00	 mov	 edx, 32512		; 00007f00H
+  002b0	33 c9		 xor	 ecx, ecx
+  002b2	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_LoadCursorW
-  0022d	48 89 84 24 d8
+  002b8	48 89 84 24 d8
 	01 00 00	 mov	 QWORD PTR WindowClass$[rsp+40], rax
 
-; 317  :   WindowClass.lpszClassName = L"WindowClass";
+; 380  :   WindowClass.lpszClassName = L"WindowClass";
 
-  00235	48 8d 05 00 00
-	00 00		 lea	 rax, OFFSET FLAT:$SG73156
-  0023c	48 89 84 24 f0
+  002c0	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:$SG73279
+  002c7	48 89 84 24 f0
 	01 00 00	 mov	 QWORD PTR WindowClass$[rsp+64], rax
 
-; 318  :   
-; 319  :   s8 *GameCodeDllName = "engine.dll";
+; 381  :   
+; 382  :   s8 *GameCodeDllName = "horizons.dll";
 
-  00244	48 8d 05 00 00
-	00 00		 lea	 rax, OFFSET FLAT:$SG73157
-  0024b	48 89 84 24 a0
+  002cf	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:$SG73280
+  002d6	48 89 84 24 98
 	00 00 00	 mov	 QWORD PTR GameCodeDllName$[rsp], rax
 
-; 320  :   s8 *GameCodeTempDllName = "engine_temp.dll";
+; 383  :   s8 *GameCodeTempDllName = "horizons_temp.dll";
 
-  00253	48 8d 05 00 00
-	00 00		 lea	 rax, OFFSET FLAT:$SG73158
-  0025a	48 89 84 24 b8
+  002de	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:$SG73281
+  002e5	48 89 84 24 d0
 	00 00 00	 mov	 QWORD PTR GameCodeTempDllName$[rsp], rax
 
-; 321  :   s8 *GameCodeLockName = "lock.tmp";
+; 384  :   s8 *GameCodeLockName = "lock.tmp";
 
-  00262	48 8d 05 00 00
-	00 00		 lea	 rax, OFFSET FLAT:$SG73159
-  00269	48 89 84 24 d8
+  002ed	48 8d 05 00 00
+	00 00		 lea	 rax, OFFSET FLAT:$SG73282
+  002f4	48 89 84 24 c8
 	00 00 00	 mov	 QWORD PTR GameCodeLockName$[rsp], rax
 
-; 322  :   
-; 323  :   if(RegisterClassW(&WindowClass))
+; 385  :   
+; 386  :   if(RegisterClassW(&WindowClass))
 
-  00271	48 8d 8c 24 b0
+  002fc	48 8d 8c 24 b0
 	01 00 00	 lea	 rcx, QWORD PTR WindowClass$[rsp]
-  00279	ff 15 00 00 00
+  00304	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_RegisterClassW
-  0027f	0f b7 c0	 movzx	 eax, ax
-  00282	85 c0		 test	 eax, eax
-  00284	0f 84 ca 05 00
+  0030a	0f b7 c0	 movzx	 eax, ax
+  0030d	85 c0		 test	 eax, eax
+  0030f	0f 84 5e 05 00
 	00		 je	 $LN6@WinMain
 
-; 324  :   {
-; 325  :     GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Engine",
+; 387  :   {
+; 388  :     GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Horizons",
 
-  0028a	48 c7 44 24 58
+  00315	48 c7 44 24 58
 	00 00 00 00	 mov	 QWORD PTR [rsp+88], 0
-  00293	48 8b 84 24 90
+  0031e	48 8b 84 24 90
 	02 00 00	 mov	 rax, QWORD PTR Instance$[rsp]
-  0029b	48 89 44 24 50	 mov	 QWORD PTR [rsp+80], rax
-  002a0	48 c7 44 24 48
+  00326	48 89 44 24 50	 mov	 QWORD PTR [rsp+80], rax
+  0032b	48 c7 44 24 48
 	00 00 00 00	 mov	 QWORD PTR [rsp+72], 0
-  002a9	48 c7 44 24 40
+  00334	48 c7 44 24 40
 	00 00 00 00	 mov	 QWORD PTR [rsp+64], 0
-  002b2	c7 44 24 38 bc
+  0033d	c7 44 24 38 bc
 	02 00 00	 mov	 DWORD PTR [rsp+56], 700	; 000002bcH
-  002ba	c7 44 24 30 78
+  00345	c7 44 24 30 78
 	05 00 00	 mov	 DWORD PTR [rsp+48], 1400 ; 00000578H
-  002c2	c7 44 24 28 00
+  0034d	c7 44 24 28 00
 	00 00 80	 mov	 DWORD PTR [rsp+40], -2147483648 ; ffffffff80000000H
-  002ca	c7 44 24 20 00
+  00355	c7 44 24 20 00
 	00 00 80	 mov	 DWORD PTR [rsp+32], -2147483648 ; ffffffff80000000H
-  002d2	41 b9 00 00 cf
+  0035d	41 b9 00 00 cf
 	10		 mov	 r9d, 282001408		; 10cf0000H
-  002d8	4c 8d 05 00 00
-	00 00		 lea	 r8, OFFSET FLAT:$SG73162
-  002df	48 8b 94 24 f0
+  00363	4c 8d 05 00 00
+	00 00		 lea	 r8, OFFSET FLAT:$SG73285
+  0036a	48 8b 94 24 f0
 	01 00 00	 mov	 rdx, QWORD PTR WindowClass$[rsp+64]
-  002e7	33 c9		 xor	 ecx, ecx
-  002e9	ff 15 00 00 00
+  00372	33 c9		 xor	 ecx, ecx
+  00374	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_CreateWindowExW
-  002ef	48 8b 0d 00 00
+  0037a	48 8b 0d 00 00
 	00 00		 mov	 rcx, QWORD PTR GlobalState
-  002f6	48 89 81 b8 00
+  00381	48 89 81 b8 00
 	00 00		 mov	 QWORD PTR [rcx+184], rax
 
-; 326  :                                         WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-; 327  :                                         CW_USEDEFAULT, CW_USEDEFAULT, 1400, 700,
-; 328  :                                         0, 0, Instance, 0);
-; 329  :     
-; 330  :     GlobalState->ShowCursor = true;
+; 389  :                                         WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+; 390  :                                         CW_USEDEFAULT, CW_USEDEFAULT, 1400, 700,
+; 391  :                                         0, 0, Instance, 0);
+; 392  :     
+; 393  :     GlobalState->ShowCursor = true;
 
-  002fd	48 8b 05 00 00
+  00388	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00304	c7 80 b0 00 00
+  0038f	c7 80 b0 00 00
 	00 01 00 00 00	 mov	 DWORD PTR [rax+176], 1
 
-; 331  :     
-; 332  :     if(GlobalState->Window)
+; 394  :     
+; 395  :     if(GlobalState->Window)
 
-  0030e	48 8b 05 00 00
+  00399	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00315	48 83 b8 b8 00
+  003a0	48 83 b8 b8 00
 	00 00 00	 cmp	 QWORD PTR [rax+184], 0
-  0031d	0f 84 28 05 00
+  003a8	0f 84 a8 04 00
 	00		 je	 $LN8@WinMain
 
-; 333  :     {
-; 334  :       HDC DeviceContext = GetDC(GlobalState->Window);
+; 396  :     {
+; 397  :       HDC DeviceContext = GetDC(GlobalState->Window);
 
-  00323	48 8b 05 00 00
+  003ae	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  0032a	48 8b 88 b8 00
+  003b5	48 8b 88 b8 00
 	00 00		 mov	 rcx, QWORD PTR [rax+184]
-  00331	ff 15 00 00 00
+  003bc	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetDC
-  00337	48 89 84 24 00
+  003c2	48 89 84 24 00
 	01 00 00	 mov	 QWORD PTR DeviceContext$18[rsp], rax
 
-; 335  :       
-; 336  :       s32 MonitorRefreshHz = 60;
+; 398  :       
+; 399  :       s32 MonitorRefreshHz = 60;
 
-  0033f	c7 44 24 78 3c
+  003ca	c7 44 24 78 3c
 	00 00 00	 mov	 DWORD PTR MonitorRefreshHz$4[rsp], 60 ; 0000003cH
 
-; 337  :       s32 Win32RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
+; 400  :       s32 Win32RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
 
-  00347	ba 74 00 00 00	 mov	 edx, 116		; 00000074H
-  0034c	48 8b 8c 24 00
+  003d2	ba 74 00 00 00	 mov	 edx, 116		; 00000074H
+  003d7	48 8b 8c 24 00
 	01 00 00	 mov	 rcx, QWORD PTR DeviceContext$18[rsp]
-  00354	ff 15 00 00 00
+  003df	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_GetDeviceCaps
-  0035a	89 44 24 74	 mov	 DWORD PTR Win32RefreshRate$3[rsp], eax
+  003e5	89 44 24 74	 mov	 DWORD PTR Win32RefreshRate$3[rsp], eax
 
-; 338  :       if(Win32RefreshRate > 1)
+; 401  :       if(Win32RefreshRate > 1)
 
-  0035e	83 7c 24 74 01	 cmp	 DWORD PTR Win32RefreshRate$3[rsp], 1
-  00363	7e 08		 jle	 SHORT $LN10@WinMain
+  003e9	83 7c 24 74 01	 cmp	 DWORD PTR Win32RefreshRate$3[rsp], 1
+  003ee	7e 08		 jle	 SHORT $LN10@WinMain
 
-; 339  :       {
-; 340  :         MonitorRefreshHz = Win32RefreshRate;
+; 402  :       {
+; 403  :         MonitorRefreshHz = Win32RefreshRate;
 
-  00365	8b 44 24 74	 mov	 eax, DWORD PTR Win32RefreshRate$3[rsp]
-  00369	89 44 24 78	 mov	 DWORD PTR MonitorRefreshHz$4[rsp], eax
+  003f0	8b 44 24 74	 mov	 eax, DWORD PTR Win32RefreshRate$3[rsp]
+  003f4	89 44 24 78	 mov	 DWORD PTR MonitorRefreshHz$4[rsp], eax
 $LN10@WinMain:
 
-; 341  :       }
-; 342  :       f32 GameUpdateHz = ((f32)MonitorRefreshHz);
+; 404  :       }
+; 405  :       f32 GameUpdateHz = ((f32)MonitorRefreshHz);
 
-  0036d	f3 0f 2a 44 24
+  003f8	f3 0f 2a 44 24
 	78		 cvtsi2ss xmm0, DWORD PTR MonitorRefreshHz$4[rsp]
-  00373	f3 0f 11 84 24
+  003fe	f3 0f 11 84 24
 	90 00 00 00	 movss	 DWORD PTR GameUpdateHz$7[rsp], xmm0
 
-; 343  :       f32 TargetSecondsPerFrame = 1.0f / (f32)GameUpdateHz;
+; 406  :       f32 TargetSecondsPerFrame = 1.0f / (f32)GameUpdateHz;
 
-  0037c	f3 0f 10 05 00
+  00407	f3 0f 10 05 00
 	00 00 00	 movss	 xmm0, DWORD PTR __real@3f800000
-  00384	f3 0f 5e 84 24
+  0040f	f3 0f 5e 84 24
 	90 00 00 00	 divss	 xmm0, DWORD PTR GameUpdateHz$7[rsp]
-  0038d	f3 0f 11 84 24
-	e4 00 00 00	 movss	 DWORD PTR TargetSecondsPerFrame$15[rsp], xmm0
+  00418	f3 0f 11 84 24
+	dc 00 00 00	 movss	 DWORD PTR TargetSecondsPerFrame$14[rsp], xmm0
 
-; 344  :       
-; 345  :       win32_game_code Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
+; 407  :       
+; 408  :       win32_game_code Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
 
-  00396	4c 8b 8c 24 d8
+  00421	4c 8b 8c 24 c8
 	00 00 00	 mov	 r9, QWORD PTR GameCodeLockName$[rsp]
-  0039e	4c 8b 84 24 b8
+  00429	4c 8b 84 24 d0
 	00 00 00	 mov	 r8, QWORD PTR GameCodeTempDllName$[rsp]
-  003a6	48 8b 94 24 a0
+  00431	48 8b 94 24 98
 	00 00 00	 mov	 rdx, QWORD PTR GameCodeDllName$[rsp]
-  003ae	48 8d 8c 24 30
-	02 00 00	 lea	 rcx, QWORD PTR $T24[rsp]
-  003b6	e8 00 00 00 00	 call	 Win32LoadGameCode
-  003bb	48 8d 8c 24 90
-	01 00 00	 lea	 rcx, QWORD PTR Game$22[rsp]
-  003c3	48 8b f9	 mov	 rdi, rcx
-  003c6	48 8b f0	 mov	 rsi, rax
-  003c9	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
-  003ce	f3 a4		 rep movsb
+  00439	48 8d 8c 24 30
+	02 00 00	 lea	 rcx, QWORD PTR $T23[rsp]
+  00441	e8 00 00 00 00	 call	 Win32LoadGameCode
+  00446	48 8d 8c 24 90
+	01 00 00	 lea	 rcx, QWORD PTR Game$21[rsp]
+  0044e	48 8b f9	 mov	 rdi, rcx
+  00451	48 8b f0	 mov	 rsi, rax
+  00454	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
+  00459	f3 a4		 rep movsb
 
-; 346  :       
-; 347  :       if(EngineMemory.PermanentStorage)
+; 409  :       
+; 410  :       if(GameMemory.PermanentStorage)
 
-  003d0	48 83 bc 24 38
-	01 00 00 00	 cmp	 QWORD PTR EngineMemory$[rsp+8], 0
-  003d9	0f 84 6a 04 00
+  0045b	48 83 bc 24 18
+	01 00 00 00	 cmp	 QWORD PTR GameMemory$[rsp+8], 0
+  00464	0f 84 ea 03 00
 	00		 je	 $LN11@WinMain
 
-; 348  :       {
-; 349  :         GlobalState->WindowDimension = Win32GetWindowDimension(GlobalState->Window);
+; 411  :       {
+; 412  :         GlobalState->WindowDimension = Win32GetWindowDimension(GlobalState->Window);
 
-  003df	48 8b 05 00 00
+  0046a	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  003e6	48 8b 88 b8 00
+  00471	48 8b 88 b8 00
 	00 00		 mov	 rcx, QWORD PTR [rax+184]
-  003ed	e8 00 00 00 00	 call	 Win32GetWindowDimension
-  003f2	48 8b 0d 00 00
+  00478	e8 00 00 00 00	 call	 Win32GetWindowDimension
+  0047d	48 8b 0d 00 00
 	00 00		 mov	 rcx, QWORD PTR GlobalState
-  003f9	48 89 81 c0 00
+  00484	48 89 81 c0 00
 	00 00		 mov	 QWORD PTR [rcx+192], rax
 
-; 350  :         
-; 351  :         LARGE_INTEGER LastCounter = Win32GetWallClock();
+; 413  :         
+; 414  :         LARGE_INTEGER LastCounter = Win32GetWallClock();
 
-  00400	e8 00 00 00 00	 call	 Win32GetWallClock
-  00405	48 89 84 24 d0
-	00 00 00	 mov	 QWORD PTR LastCounter$14[rsp], rax
+  0048b	e8 00 00 00 00	 call	 Win32GetWallClock
+  00490	48 89 84 24 c0
+	00 00 00	 mov	 QWORD PTR LastCounter$13[rsp], rax
 
-; 352  :         b32 ShouldClose = false;
+; 415  :         b32 ShouldClose = false;
 
-  0040d	c7 84 24 88 00
+  00498	c7 84 24 88 00
 	00 00 00 00 00
 	00		 mov	 DWORD PTR ShouldClose$6[rsp], 0
 $LN2@WinMain:
 
-; 353  :         while(!ShouldClose)
+; 416  :         while(!ShouldClose)
 
-  00418	83 bc 24 88 00
+  004a3	83 bc 24 88 00
 	00 00 00	 cmp	 DWORD PTR ShouldClose$6[rsp], 0
-  00420	0f 85 23 04 00
+  004ab	0f 85 a3 03 00
 	00		 jne	 $LN3@WinMain
 
-; 354  :         {
-; 355  :           f32 DeltaTime;
-; 356  :           {
-; 357  :             LARGE_INTEGER EndCounter = Win32GetWallClock();
+; 417  :         {
+; 418  :           f32 DeltaTime;
+; 419  :           {
+; 420  :             LARGE_INTEGER EndCounter = Win32GetWallClock();
 
-  00426	e8 00 00 00 00	 call	 Win32GetWallClock
-  0042b	48 89 84 24 c8
-	00 00 00	 mov	 QWORD PTR EndCounter$13[rsp], rax
+  004b1	e8 00 00 00 00	 call	 Win32GetWallClock
+  004b6	48 89 84 24 b8
+	00 00 00	 mov	 QWORD PTR EndCounter$12[rsp], rax
 
-; 358  :             DeltaTime = Win32GetSecondsElapsed(LastCounter, EndCounter);
+; 421  :             DeltaTime = Win32GetSecondsElapsed(LastCounter, EndCounter);
 
-  00433	48 8b 94 24 c8
-	00 00 00	 mov	 rdx, QWORD PTR EndCounter$13[rsp]
-  0043b	48 8b 8c 24 d0
-	00 00 00	 mov	 rcx, QWORD PTR LastCounter$14[rsp]
-  00443	e8 00 00 00 00	 call	 Win32GetSecondsElapsed
-  00448	f3 0f 11 84 24
-	98 00 00 00	 movss	 DWORD PTR DeltaTime$9[rsp], xmm0
+  004be	48 8b 94 24 b8
+	00 00 00	 mov	 rdx, QWORD PTR EndCounter$12[rsp]
+  004c6	48 8b 8c 24 c0
+	00 00 00	 mov	 rcx, QWORD PTR LastCounter$13[rsp]
+  004ce	e8 00 00 00 00	 call	 Win32GetSecondsElapsed
+  004d3	f3 0f 11 84 24
+	94 00 00 00	 movss	 DWORD PTR DeltaTime$8[rsp], xmm0
 
-; 359  :             LastCounter = EndCounter;
+; 422  :             LastCounter = EndCounter;
 
-  00451	48 8b 84 24 c8
-	00 00 00	 mov	 rax, QWORD PTR EndCounter$13[rsp]
-  00459	48 89 84 24 d0
-	00 00 00	 mov	 QWORD PTR LastCounter$14[rsp], rax
+  004dc	48 8b 84 24 b8
+	00 00 00	 mov	 rax, QWORD PTR EndCounter$12[rsp]
+  004e4	48 89 84 24 c0
+	00 00 00	 mov	 QWORD PTR LastCounter$13[rsp], rax
 
-; 360  :           }
-; 361  :           
-; 362  :           {
-; 363  :             FILETIME NewDllWriteTime = Win32GetLastWriteTime(GameCodeDllName);
+; 423  :           }
+; 424  :           
+; 425  :           {
+; 426  :             FILETIME NewDllWriteTime = Win32GetLastWriteTime(GameCodeDllName);
 
-  00461	48 8b 8c 24 a0
+  004ec	48 8b 8c 24 98
 	00 00 00	 mov	 rcx, QWORD PTR GameCodeDllName$[rsp]
-  00469	e8 00 00 00 00	 call	 Win32GetLastWriteTime
-  0046e	48 89 84 24 08
+  004f4	e8 00 00 00 00	 call	 Win32GetLastWriteTime
+  004f9	48 89 84 24 08
 	01 00 00	 mov	 QWORD PTR NewDllWriteTime$19[rsp], rax
 
-; 364  :             if(CompareFileTime(&Game.LastWriteTime, &NewDllWriteTime))
+; 427  :             if(CompareFileTime(&Game.LastWriteTime, &NewDllWriteTime))
 
-  00476	48 8d 94 24 08
+  00501	48 8d 94 24 08
 	01 00 00	 lea	 rdx, QWORD PTR NewDllWriteTime$19[rsp]
-  0047e	48 8d 8c 24 a0
-	01 00 00	 lea	 rcx, QWORD PTR Game$22[rsp+16]
-  00486	ff 15 00 00 00
+  00509	48 8d 8c 24 a0
+	01 00 00	 lea	 rcx, QWORD PTR Game$21[rsp+16]
+  00511	ff 15 00 00 00
 	00		 call	 QWORD PTR __imp_CompareFileTime
-  0048c	85 c0		 test	 eax, eax
-  0048e	74 47		 je	 SHORT $LN12@WinMain
+  00517	85 c0		 test	 eax, eax
+  00519	74 47		 je	 SHORT $LN12@WinMain
 
-; 365  :             {
-; 366  :               Win32UnloadGameCode(&Game);
-
-  00490	48 8d 8c 24 90
-	01 00 00	 lea	 rcx, QWORD PTR Game$22[rsp]
-  00498	e8 00 00 00 00	 call	 Win32UnloadGameCode
-
-; 367  :               Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
-
-  0049d	4c 8b 8c 24 d8
-	00 00 00	 mov	 r9, QWORD PTR GameCodeLockName$[rsp]
-  004a5	4c 8b 84 24 b8
-	00 00 00	 mov	 r8, QWORD PTR GameCodeTempDllName$[rsp]
-  004ad	48 8b 94 24 a0
-	00 00 00	 mov	 rdx, QWORD PTR GameCodeDllName$[rsp]
-  004b5	48 8d 8c 24 50
-	02 00 00	 lea	 rcx, QWORD PTR $T25[rsp]
-  004bd	e8 00 00 00 00	 call	 Win32LoadGameCode
-  004c2	48 8d 8c 24 90
-	01 00 00	 lea	 rcx, QWORD PTR Game$22[rsp]
-  004ca	48 8b f9	 mov	 rdi, rcx
-  004cd	48 8b f0	 mov	 rsi, rax
-  004d0	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
-  004d5	f3 a4		 rep movsb
-$LN12@WinMain:
-
-; 368  :             }
-; 369  :           }
-; 370  :           
-; 371  :           GlobalState->GameInput.Keyboard.Backspace = false;
-
-  004d7	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  004de	c7 40 2c 00 00
-	00 00		 mov	 DWORD PTR [rax+44], 0
-$LN4@WinMain:
-
-; 372  :           {
-; 373  :             MSG Message;
-; 374  :             while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
-
-  004e5	c7 44 24 20 01
-	00 00 00	 mov	 DWORD PTR [rsp+32], 1
-  004ed	45 33 c9	 xor	 r9d, r9d
-  004f0	45 33 c0	 xor	 r8d, r8d
-  004f3	33 d2		 xor	 edx, edx
-  004f5	48 8d 8c 24 00
-	02 00 00	 lea	 rcx, QWORD PTR Message$23[rsp]
-  004fd	ff 15 00 00 00
-	00		 call	 QWORD PTR __imp_PeekMessageA
-  00503	85 c0		 test	 eax, eax
-  00505	74 1e		 je	 SHORT $LN5@WinMain
-
-; 375  :             {
-; 376  :               TranslateMessage(&Message);
-
-  00507	48 8d 8c 24 00
-	02 00 00	 lea	 rcx, QWORD PTR Message$23[rsp]
-  0050f	ff 15 00 00 00
-	00		 call	 QWORD PTR __imp_TranslateMessage
-
-; 377  :               DispatchMessageA(&Message);
-
-  00515	48 8d 8c 24 00
-	02 00 00	 lea	 rcx, QWORD PTR Message$23[rsp]
-  0051d	ff 15 00 00 00
-	00		 call	 QWORD PTR __imp_DispatchMessageA
-
-; 378  :             }
-
-  00523	eb c0		 jmp	 SHORT $LN4@WinMain
-$LN5@WinMain:
-
-; 379  :           }
-; 380  :           
-; 381  :           {
-; 382  :             controller_input *Input = &GlobalState->GameInput.Controller;
-
-  00525	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  0052c	48 83 c0 68	 add	 rax, 104		; 00000068H
-  00530	48 89 44 24 60	 mov	 QWORD PTR Input$1[rsp], rax
-
-; 383  :             
-; 384  :             XINPUT_STATE ControllerState = {0};
-
-  00535	48 8d 84 24 10
-	01 00 00	 lea	 rax, QWORD PTR ControllerState$20[rsp]
-  0053d	48 8b f8	 mov	 rdi, rax
-  00540	33 c0		 xor	 eax, eax
-  00542	b9 10 00 00 00	 mov	 ecx, 16
-  00547	f3 aa		 rep stosb
-
-; 385  :             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
-
-  00549	48 8d 84 24 14
-	01 00 00	 lea	 rax, QWORD PTR ControllerState$20[rsp+4]
-  00551	48 89 44 24 68	 mov	 QWORD PTR Pad$2[rsp], rax
-
-; 386  :             if(XInputGetState(0, &ControllerState) == ERROR_SUCCESS)
-
-  00556	48 8d 94 24 10
-	01 00 00	 lea	 rdx, QWORD PTR ControllerState$20[rsp]
-  0055e	33 c9		 xor	 ecx, ecx
-  00560	ff 15 00 00 00
-	00		 call	 QWORD PTR XInputGetState_
-  00566	85 c0		 test	 eax, eax
-  00568	0f 85 b3 01 00
-	00		 jne	 $LN13@WinMain
-
-; 387  :             {
-; 388  :               Input->Connected = true;
-
-  0056e	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  00573	c7 00 01 00 00
-	00		 mov	 DWORD PTR [rax], 1
-
-; 389  :               
-; 390  :               Input->Up = Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP;
-
-  00579	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0057e	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  00581	83 e0 01	 and	 eax, 1
-  00584	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00589	89 41 04	 mov	 DWORD PTR [rcx+4], eax
-
-; 391  :               Input->Down = Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
-
-  0058c	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  00591	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  00594	83 e0 02	 and	 eax, 2
-  00597	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  0059c	89 41 0c	 mov	 DWORD PTR [rcx+12], eax
-
-; 392  :               Input->Left= Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
-
-  0059f	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  005a4	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  005a7	83 e0 04	 and	 eax, 4
-  005aa	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  005af	89 41 08	 mov	 DWORD PTR [rcx+8], eax
-
-; 393  :               Input->Right= Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
-
-  005b2	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  005b7	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  005ba	83 e0 08	 and	 eax, 8
-  005bd	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  005c2	89 41 10	 mov	 DWORD PTR [rcx+16], eax
-
-; 394  :               
-; 395  :               Input->Start = Pad->wButtons & XINPUT_GAMEPAD_START;
-
-  005c5	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  005ca	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  005cd	83 e0 10	 and	 eax, 16
-  005d0	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  005d5	89 41 14	 mov	 DWORD PTR [rcx+20], eax
-
-; 396  :               
-; 397  :               Input->LeftShoulder= Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
-
-  005d8	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  005dd	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  005e0	25 00 01 00 00	 and	 eax, 256		; 00000100H
-  005e5	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  005ea	89 41 18	 mov	 DWORD PTR [rcx+24], eax
-
-; 398  :               Input->RightShoulder = Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
-
-  005ed	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  005f2	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  005f5	25 00 02 00 00	 and	 eax, 512		; 00000200H
-  005fa	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  005ff	89 41 1c	 mov	 DWORD PTR [rcx+28], eax
-
-; 399  :               
-; 400  :               Input->A = Pad->wButtons & XINPUT_GAMEPAD_A;
-
-  00602	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  00607	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  0060a	25 00 10 00 00	 and	 eax, 4096		; 00001000H
-  0060f	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00614	89 41 20	 mov	 DWORD PTR [rcx+32], eax
-
-; 401  :               Input->B = Pad->wButtons & XINPUT_GAMEPAD_B;
-
-  00617	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0061c	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  0061f	25 00 20 00 00	 and	 eax, 8192		; 00002000H
-  00624	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00629	89 41 24	 mov	 DWORD PTR [rcx+36], eax
-
-; 402  :               Input->X = Pad->wButtons & XINPUT_GAMEPAD_X;
-
-  0062c	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  00631	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  00634	25 00 40 00 00	 and	 eax, 16384		; 00004000H
-  00639	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  0063e	89 41 28	 mov	 DWORD PTR [rcx+40], eax
-
-; 403  :               Input->Y = Pad->wButtons & XINPUT_GAMEPAD_Y;
-
-  00641	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  00646	0f b7 00	 movzx	 eax, WORD PTR [rax]
-  00649	25 00 80 00 00	 and	 eax, 32768		; 00008000H
-  0064e	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00653	89 41 2c	 mov	 DWORD PTR [rcx+44], eax
-
-; 404  :               
-; 405  :               Input->LeftTrigger = Pad->bLeftTrigger;
-
-  00656	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0065b	0f b6 40 02	 movzx	 eax, BYTE PTR [rax+2]
-  0065f	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00664	66 89 41 30	 mov	 WORD PTR [rcx+48], ax
-
-; 406  :               Input->RightTrigger = Pad->bLeftTrigger;
-
-  00668	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0066d	0f b6 40 02	 movzx	 eax, BYTE PTR [rax+2]
-  00671	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
-  00676	66 89 41 32	 mov	 WORD PTR [rcx+50], ax
-
-; 407  :               
-; 408  :               Input->LeftThumbY = (Pad->sThumbLX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) ? Pad->sThumbLX : 0;
-
-  0067a	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0067f	0f bf 40 04	 movsx	 eax, WORD PTR [rax+4]
-  00683	3d a9 1e 00 00	 cmp	 eax, 7849		; 00001ea9H
-  00688	7e 0f		 jle	 SHORT $LN21@WinMain
-  0068a	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  0068f	0f bf 40 04	 movsx	 eax, WORD PTR [rax+4]
-  00693	89 44 24 7c	 mov	 DWORD PTR tv298[rsp], eax
-  00697	eb 08		 jmp	 SHORT $LN22@WinMain
-$LN21@WinMain:
-  00699	c7 44 24 7c 00
-	00 00 00	 mov	 DWORD PTR tv298[rsp], 0
-$LN22@WinMain:
-  006a1	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  006a6	0f b7 4c 24 7c	 movzx	 ecx, WORD PTR tv298[rsp]
-  006ab	66 89 48 36	 mov	 WORD PTR [rax+54], cx
-
-; 409  :               Input->LeftThumbX = (Pad->sThumbLY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) ? Pad->sThumbLY : 0;
-
-  006af	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  006b4	0f bf 40 06	 movsx	 eax, WORD PTR [rax+6]
-  006b8	3d f1 21 00 00	 cmp	 eax, 8689		; 000021f1H
-  006bd	7e 12		 jle	 SHORT $LN23@WinMain
-  006bf	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
-  006c4	0f bf 40 06	 movsx	 eax, WORD PTR [rax+6]
-  006c8	89 84 24 80 00
-	00 00		 mov	 DWORD PTR tv306[rsp], eax
-  006cf	eb 0b		 jmp	 SHORT $LN24@WinMain
-$LN23@WinMain:
-  006d1	c7 84 24 80 00
-	00 00 00 00 00
-	00		 mov	 DWORD PTR tv306[rsp], 0
-$LN24@WinMain:
-  006dc	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  006e1	0f b7 8c 24 80
-	00 00 00	 movzx	 ecx, WORD PTR tv306[rsp]
-  006e9	66 89 48 34	 mov	 WORD PTR [rax+52], cx
-
-; 410  :               
-; 411  :               XINPUT_VIBRATION Vibration;
-; 412  :               Vibration.wLeftMotorSpeed = Input->LeftVibration;
-
-  006ed	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  006f2	0f b7 40 38	 movzx	 eax, WORD PTR [rax+56]
-  006f6	66 89 84 24 84
-	00 00 00	 mov	 WORD PTR Vibration$5[rsp], ax
-
-; 413  :               Vibration.wRightMotorSpeed = Input->RightVibration;
-
-  006fe	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  00703	0f b7 40 3a	 movzx	 eax, WORD PTR [rax+58]
-  00707	66 89 84 24 86
-	00 00 00	 mov	 WORD PTR Vibration$5[rsp+2], ax
-
-; 414  :               XInputSetState(0, &Vibration);
-
-  0070f	48 8d 94 24 84
-	00 00 00	 lea	 rdx, QWORD PTR Vibration$5[rsp]
-  00717	33 c9		 xor	 ecx, ecx
-  00719	ff 15 00 00 00
-	00		 call	 QWORD PTR XInputSetState_
-
-; 415  :             }
-
-  0071f	eb 0b		 jmp	 SHORT $LN14@WinMain
-$LN13@WinMain:
-
-; 416  :             else
-; 417  :             {
-; 418  :               Input->Connected = false;
-
-  00721	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
-  00726	c7 00 00 00 00
-	00		 mov	 DWORD PTR [rax], 0
-$LN14@WinMain:
-
-; 419  :               // NOTE(evan): Controller not connected, this is NOT an error
-; 420  :             }
-; 421  :           }
-; 422  :           
-; 423  :           {
-; 424  :             window_dimension NewWindowDimension = Win32GetWindowDimension(GlobalState->Window);
-
-  0072c	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  00733	48 8b 88 b8 00
-	00 00		 mov	 rcx, QWORD PTR [rax+184]
-  0073a	e8 00 00 00 00	 call	 Win32GetWindowDimension
-  0073f	48 89 84 24 a8
-	00 00 00	 mov	 QWORD PTR NewWindowDimension$10[rsp], rax
-
-; 425  :             b32 WindowResized = false;
-
-  00747	c7 84 24 94 00
-	00 00 00 00 00
-	00		 mov	 DWORD PTR WindowResized$8[rsp], 0
-
-; 426  :             if(NewWindowDimension.Width != GlobalState->WindowDimension.Width ||
-
-  00752	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  00759	8b 80 c0 00 00
-	00		 mov	 eax, DWORD PTR [rax+192]
-  0075f	39 84 24 a8 00
-	00 00		 cmp	 DWORD PTR NewWindowDimension$10[rsp], eax
-  00766	75 16		 jne	 SHORT $LN16@WinMain
-  00768	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  0076f	8b 80 c4 00 00
-	00		 mov	 eax, DWORD PTR [rax+196]
-  00775	39 84 24 ac 00
-	00 00		 cmp	 DWORD PTR NewWindowDimension$10[rsp+4], eax
-  0077c	74 21		 je	 SHORT $LN15@WinMain
-$LN16@WinMain:
-
-; 427  :                NewWindowDimension.Height != GlobalState->WindowDimension.Height)
 ; 428  :             {
-; 429  :               WindowResized = true;
+; 429  :               Win32UnloadGameCode(&Game);
 
-  0077e	c7 84 24 94 00
-	00 00 01 00 00
-	00		 mov	 DWORD PTR WindowResized$8[rsp], 1
+  0051b	48 8d 8c 24 90
+	01 00 00	 lea	 rcx, QWORD PTR Game$21[rsp]
+  00523	e8 00 00 00 00	 call	 Win32UnloadGameCode
 
-; 430  :               GlobalState->WindowDimension = NewWindowDimension;
+; 430  :               Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
 
-  00789	48 8b 05 00 00
-	00 00		 mov	 rax, QWORD PTR GlobalState
-  00790	48 8b 8c 24 a8
-	00 00 00	 mov	 rcx, QWORD PTR NewWindowDimension$10[rsp]
-  00798	48 89 88 c0 00
-	00 00		 mov	 QWORD PTR [rax+192], rcx
-$LN15@WinMain:
+  00528	4c 8b 8c 24 c8
+	00 00 00	 mov	 r9, QWORD PTR GameCodeLockName$[rsp]
+  00530	4c 8b 84 24 d0
+	00 00 00	 mov	 r8, QWORD PTR GameCodeTempDllName$[rsp]
+  00538	48 8b 94 24 98
+	00 00 00	 mov	 rdx, QWORD PTR GameCodeDllName$[rsp]
+  00540	48 8d 8c 24 50
+	02 00 00	 lea	 rcx, QWORD PTR $T24[rsp]
+  00548	e8 00 00 00 00	 call	 Win32LoadGameCode
+  0054d	48 8d 8c 24 90
+	01 00 00	 lea	 rcx, QWORD PTR Game$21[rsp]
+  00555	48 8b f9	 mov	 rdi, rcx
+  00558	48 8b f0	 mov	 rsi, rax
+  0055b	b9 20 00 00 00	 mov	 ecx, 32			; 00000020H
+  00560	f3 a4		 rep movsb
+$LN12@WinMain:
 
 ; 431  :             }
 ; 432  :           }
 ; 433  :           
-; 434  :           if(GlobalState->ShowCursor)
+; 434  :           GlobalState->GameInput.Keyboard.Backspace = false;
 
-  0079f	48 8b 05 00 00
+  00562	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  007a6	83 b8 b0 00 00
-	00 00		 cmp	 DWORD PTR [rax+176], 0
-  007ad	74 5e		 je	 SHORT $LN17@WinMain
+  00569	c7 40 2c 00 00
+	00 00		 mov	 DWORD PTR [rax+44], 0
+$LN4@WinMain:
 
 ; 435  :           {
-; 436  :             RECT WindowRect;
-; 437  :             GetClientRect(GlobalState->Window, &WindowRect);
+; 436  :             MSG Message;
+; 437  :             while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))
 
-  007af	48 8d 94 24 20
-	01 00 00	 lea	 rdx, QWORD PTR WindowRect$21[rsp]
+  00570	c7 44 24 20 01
+	00 00 00	 mov	 DWORD PTR [rsp+32], 1
+  00578	45 33 c9	 xor	 r9d, r9d
+  0057b	45 33 c0	 xor	 r8d, r8d
+  0057e	33 d2		 xor	 edx, edx
+  00580	48 8d 8c 24 00
+	02 00 00	 lea	 rcx, QWORD PTR Message$22[rsp]
+  00588	ff 15 00 00 00
+	00		 call	 QWORD PTR __imp_PeekMessageA
+  0058e	85 c0		 test	 eax, eax
+  00590	74 1e		 je	 SHORT $LN5@WinMain
+
+; 438  :             {
+; 439  :               TranslateMessage(&Message);
+
+  00592	48 8d 8c 24 00
+	02 00 00	 lea	 rcx, QWORD PTR Message$22[rsp]
+  0059a	ff 15 00 00 00
+	00		 call	 QWORD PTR __imp_TranslateMessage
+
+; 440  :               DispatchMessageA(&Message);
+
+  005a0	48 8d 8c 24 00
+	02 00 00	 lea	 rcx, QWORD PTR Message$22[rsp]
+  005a8	ff 15 00 00 00
+	00		 call	 QWORD PTR __imp_DispatchMessageA
+
+; 441  :             }
+
+  005ae	eb c0		 jmp	 SHORT $LN4@WinMain
+$LN5@WinMain:
+
+; 442  :           }
+; 443  :           
+; 444  :           {
+; 445  :             game_controller_input *Input = &GlobalState->GameInput.Controller;
+
+  005b0	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  005b7	48 83 c0 68	 add	 rax, 104		; 00000068H
+  005bb	48 89 44 24 60	 mov	 QWORD PTR Input$1[rsp], rax
+
+; 446  :             
+; 447  :             XINPUT_STATE ControllerState = {0};
+
+  005c0	48 8d 84 24 80
+	01 00 00	 lea	 rax, QWORD PTR ControllerState$20[rsp]
+  005c8	48 8b f8	 mov	 rdi, rax
+  005cb	33 c0		 xor	 eax, eax
+  005cd	b9 10 00 00 00	 mov	 ecx, 16
+  005d2	f3 aa		 rep stosb
+
+; 448  :             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
+
+  005d4	48 8d 84 24 84
+	01 00 00	 lea	 rax, QWORD PTR ControllerState$20[rsp+4]
+  005dc	48 89 44 24 68	 mov	 QWORD PTR Pad$2[rsp], rax
+
+; 449  :             if(XInputGetState(0, &ControllerState) == ERROR_SUCCESS)
+
+  005e1	48 8d 94 24 80
+	01 00 00	 lea	 rdx, QWORD PTR ControllerState$20[rsp]
+  005e9	33 c9		 xor	 ecx, ecx
+  005eb	ff 15 00 00 00
+	00		 call	 QWORD PTR XInputGetState_
+  005f1	85 c0		 test	 eax, eax
+  005f3	0f 85 b3 01 00
+	00		 jne	 $LN13@WinMain
+
+; 450  :             {
+; 451  :               Input->Connected = true;
+
+  005f9	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  005fe	c7 00 01 00 00
+	00		 mov	 DWORD PTR [rax], 1
+
+; 452  :               
+; 453  :               Input->Up = Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP;
+
+  00604	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  00609	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  0060c	83 e0 01	 and	 eax, 1
+  0060f	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  00614	89 41 04	 mov	 DWORD PTR [rcx+4], eax
+
+; 454  :               Input->Down = Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN;
+
+  00617	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0061c	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  0061f	83 e0 02	 and	 eax, 2
+  00622	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  00627	89 41 0c	 mov	 DWORD PTR [rcx+12], eax
+
+; 455  :               Input->Left= Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT;
+
+  0062a	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0062f	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  00632	83 e0 04	 and	 eax, 4
+  00635	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  0063a	89 41 08	 mov	 DWORD PTR [rcx+8], eax
+
+; 456  :               Input->Right= Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT;
+
+  0063d	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  00642	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  00645	83 e0 08	 and	 eax, 8
+  00648	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  0064d	89 41 10	 mov	 DWORD PTR [rcx+16], eax
+
+; 457  :               
+; 458  :               Input->Start = Pad->wButtons & XINPUT_GAMEPAD_START;
+
+  00650	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  00655	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  00658	83 e0 10	 and	 eax, 16
+  0065b	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  00660	89 41 14	 mov	 DWORD PTR [rcx+20], eax
+
+; 459  :               
+; 460  :               Input->LeftShoulder= Pad->wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER;
+
+  00663	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  00668	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  0066b	25 00 01 00 00	 and	 eax, 256		; 00000100H
+  00670	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  00675	89 41 18	 mov	 DWORD PTR [rcx+24], eax
+
+; 461  :               Input->RightShoulder = Pad->wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER;
+
+  00678	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0067d	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  00680	25 00 02 00 00	 and	 eax, 512		; 00000200H
+  00685	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  0068a	89 41 1c	 mov	 DWORD PTR [rcx+28], eax
+
+; 462  :               
+; 463  :               Input->A = Pad->wButtons & XINPUT_GAMEPAD_A;
+
+  0068d	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  00692	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  00695	25 00 10 00 00	 and	 eax, 4096		; 00001000H
+  0069a	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  0069f	89 41 20	 mov	 DWORD PTR [rcx+32], eax
+
+; 464  :               Input->B = Pad->wButtons & XINPUT_GAMEPAD_B;
+
+  006a2	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  006a7	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  006aa	25 00 20 00 00	 and	 eax, 8192		; 00002000H
+  006af	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  006b4	89 41 24	 mov	 DWORD PTR [rcx+36], eax
+
+; 465  :               Input->X = Pad->wButtons & XINPUT_GAMEPAD_X;
+
+  006b7	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  006bc	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  006bf	25 00 40 00 00	 and	 eax, 16384		; 00004000H
+  006c4	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  006c9	89 41 28	 mov	 DWORD PTR [rcx+40], eax
+
+; 466  :               Input->Y = Pad->wButtons & XINPUT_GAMEPAD_Y;
+
+  006cc	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  006d1	0f b7 00	 movzx	 eax, WORD PTR [rax]
+  006d4	25 00 80 00 00	 and	 eax, 32768		; 00008000H
+  006d9	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  006de	89 41 2c	 mov	 DWORD PTR [rcx+44], eax
+
+; 467  :               
+; 468  :               Input->LeftTrigger = Pad->bLeftTrigger;
+
+  006e1	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  006e6	0f b6 40 02	 movzx	 eax, BYTE PTR [rax+2]
+  006ea	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  006ef	66 89 41 30	 mov	 WORD PTR [rcx+48], ax
+
+; 469  :               Input->RightTrigger = Pad->bLeftTrigger;
+
+  006f3	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  006f8	0f b6 40 02	 movzx	 eax, BYTE PTR [rax+2]
+  006fc	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Input$1[rsp]
+  00701	66 89 41 32	 mov	 WORD PTR [rcx+50], ax
+
+; 470  :               
+; 471  :               Input->LeftThumbY = (Pad->sThumbLX > XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE) ? Pad->sThumbLX : 0;
+
+  00705	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0070a	0f bf 40 04	 movsx	 eax, WORD PTR [rax+4]
+  0070e	3d a9 1e 00 00	 cmp	 eax, 7849		; 00001ea9H
+  00713	7e 0f		 jle	 SHORT $LN20@WinMain
+  00715	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0071a	0f bf 40 04	 movsx	 eax, WORD PTR [rax+4]
+  0071e	89 44 24 7c	 mov	 DWORD PTR tv337[rsp], eax
+  00722	eb 08		 jmp	 SHORT $LN21@WinMain
+$LN20@WinMain:
+  00724	c7 44 24 7c 00
+	00 00 00	 mov	 DWORD PTR tv337[rsp], 0
+$LN21@WinMain:
+  0072c	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  00731	0f b7 4c 24 7c	 movzx	 ecx, WORD PTR tv337[rsp]
+  00736	66 89 48 36	 mov	 WORD PTR [rax+54], cx
+
+; 472  :               Input->LeftThumbX = (Pad->sThumbLY > XINPUT_GAMEPAD_RIGHT_THUMB_DEADZONE) ? Pad->sThumbLY : 0;
+
+  0073a	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0073f	0f bf 40 06	 movsx	 eax, WORD PTR [rax+6]
+  00743	3d f1 21 00 00	 cmp	 eax, 8689		; 000021f1H
+  00748	7e 12		 jle	 SHORT $LN22@WinMain
+  0074a	48 8b 44 24 68	 mov	 rax, QWORD PTR Pad$2[rsp]
+  0074f	0f bf 40 06	 movsx	 eax, WORD PTR [rax+6]
+  00753	89 84 24 80 00
+	00 00		 mov	 DWORD PTR tv345[rsp], eax
+  0075a	eb 0b		 jmp	 SHORT $LN23@WinMain
+$LN22@WinMain:
+  0075c	c7 84 24 80 00
+	00 00 00 00 00
+	00		 mov	 DWORD PTR tv345[rsp], 0
+$LN23@WinMain:
+  00767	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  0076c	0f b7 8c 24 80
+	00 00 00	 movzx	 ecx, WORD PTR tv345[rsp]
+  00774	66 89 48 34	 mov	 WORD PTR [rax+52], cx
+
+; 473  :               
+; 474  :               XINPUT_VIBRATION Vibration;
+; 475  :               Vibration.wLeftMotorSpeed = Input->LeftVibration;
+
+  00778	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  0077d	0f b7 40 38	 movzx	 eax, WORD PTR [rax+56]
+  00781	66 89 84 24 84
+	00 00 00	 mov	 WORD PTR Vibration$5[rsp], ax
+
+; 476  :               Vibration.wRightMotorSpeed = Input->RightVibration;
+
+  00789	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  0078e	0f b7 40 3a	 movzx	 eax, WORD PTR [rax+58]
+  00792	66 89 84 24 86
+	00 00 00	 mov	 WORD PTR Vibration$5[rsp+2], ax
+
+; 477  :               XInputSetState(0, &Vibration);
+
+  0079a	48 8d 94 24 84
+	00 00 00	 lea	 rdx, QWORD PTR Vibration$5[rsp]
+  007a2	33 c9		 xor	 ecx, ecx
+  007a4	ff 15 00 00 00
+	00		 call	 QWORD PTR XInputSetState_
+
+; 478  :             }
+
+  007aa	eb 0b		 jmp	 SHORT $LN14@WinMain
+$LN13@WinMain:
+
+; 479  :             else
+; 480  :             {
+; 481  :               Input->Connected = false;
+
+  007ac	48 8b 44 24 60	 mov	 rax, QWORD PTR Input$1[rsp]
+  007b1	c7 00 00 00 00
+	00		 mov	 DWORD PTR [rax], 0
+$LN14@WinMain:
+
+; 482  :               // NOTE(evan): Controller not connected, this is NOT an error
+; 483  :             }
+; 484  :           }
+; 485  :           
+; 486  :           {
+; 487  :             window_dimension NewWindowDimension = Win32GetWindowDimension(GlobalState->Window);
+
   007b7	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
   007be	48 8b 88 b8 00
 	00 00		 mov	 rcx, QWORD PTR [rax+184]
-  007c5	ff 15 00 00 00
-	00		 call	 QWORD PTR __imp_GetClientRect
+  007c5	e8 00 00 00 00	 call	 Win32GetWindowDimension
+  007ca	48 89 84 24 a0
+	00 00 00	 mov	 QWORD PTR NewWindowDimension$9[rsp], rax
 
-; 438  :             
-; 439  :             POINT Center = { WindowRect.right/2, WindowRect.bottom/2 };
+; 488  :             if(NewWindowDimension.Width != GlobalState->WindowDimension.Width ||
 
-  007cb	8b 84 24 28 01
-	00 00		 mov	 eax, DWORD PTR WindowRect$21[rsp+8]
-  007d2	99		 cdq
-  007d3	2b c2		 sub	 eax, edx
-  007d5	d1 f8		 sar	 eax, 1
-  007d7	89 84 24 c0 00
-	00 00		 mov	 DWORD PTR Center$12[rsp], eax
-  007de	8b 84 24 2c 01
-	00 00		 mov	 eax, DWORD PTR WindowRect$21[rsp+12]
-  007e5	99		 cdq
-  007e6	2b c2		 sub	 eax, edx
-  007e8	d1 f8		 sar	 eax, 1
-  007ea	89 84 24 c4 00
-	00 00		 mov	 DWORD PTR Center$12[rsp+4], eax
-
-; 440  :             ClientToScreen(GlobalState->Window, &Center);
-
-  007f1	48 8d 94 24 c0
-	00 00 00	 lea	 rdx, QWORD PTR Center$12[rsp]
-  007f9	48 8b 05 00 00
+  007d2	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00800	48 8b 88 b8 00
-	00 00		 mov	 rcx, QWORD PTR [rax+184]
-  00807	ff 15 00 00 00
-	00		 call	 QWORD PTR __imp_ClientToScreen
-$LN17@WinMain:
-
-; 441  :             // SetCursorPos(Center.x, Center.y);
-; 442  :           }
-; 443  :           
-; 444  :           ShouldClose = Game.GameUpdateAndRender(GlobalState->WindowDimension,
-
-  0080d	48 8b 05 00 00
+  007d9	8b 80 c0 00 00
+	00		 mov	 eax, DWORD PTR [rax+192]
+  007df	39 84 24 a0 00
+	00 00		 cmp	 DWORD PTR NewWindowDimension$9[rsp], eax
+  007e6	75 16		 jne	 SHORT $LN16@WinMain
+  007e8	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  00814	f3 0f 10 9c 24
-	98 00 00 00	 movss	 xmm3, DWORD PTR DeltaTime$9[rsp]
-  0081d	4c 8b c0	 mov	 r8, rax
-  00820	48 8d 94 24 30
-	01 00 00	 lea	 rdx, QWORD PTR EngineMemory$[rsp]
-  00828	48 8b 05 00 00
+  007ef	8b 80 c4 00 00
+	00		 mov	 eax, DWORD PTR [rax+196]
+  007f5	39 84 24 a4 00
+	00 00		 cmp	 DWORD PTR NewWindowDimension$9[rsp+4], eax
+  007fc	74 16		 je	 SHORT $LN15@WinMain
+$LN16@WinMain:
+
+; 489  :                NewWindowDimension.Height != GlobalState->WindowDimension.Height)
+; 490  :             {
+; 491  :               GlobalState->WindowDimension = NewWindowDimension;
+
+  007fe	48 8b 05 00 00
 	00 00		 mov	 rax, QWORD PTR GlobalState
-  0082f	48 8b 88 c0 00
-	00 00		 mov	 rcx, QWORD PTR [rax+192]
-  00836	ff 94 24 a8 01
-	00 00		 call	 QWORD PTR Game$22[rsp+24]
-  0083d	89 84 24 88 00
+  00805	48 8b 8c 24 a0
+	00 00 00	 mov	 rcx, QWORD PTR NewWindowDimension$9[rsp]
+  0080d	48 89 88 c0 00
+	00 00		 mov	 QWORD PTR [rax+192], rcx
+$LN15@WinMain:
+
+; 492  :             }
+; 493  :           }
+; 494  :           
+; 495  :           ShouldClose = Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
+
+  00814	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  0081b	f3 0f 10 94 24
+	94 00 00 00	 movss	 xmm2, DWORD PTR DeltaTime$8[rsp]
+  00824	48 8b d0	 mov	 rdx, rax
+  00827	48 8d 8c 24 10
+	01 00 00	 lea	 rcx, QWORD PTR GameMemory$[rsp]
+  0082f	ff 94 24 a8 01
+	00 00		 call	 QWORD PTR Game$21[rsp+24]
+  00836	89 84 24 88 00
 	00 00		 mov	 DWORD PTR ShouldClose$6[rsp], eax
 
-; 445  :                                                  &EngineMemory, &GlobalState->GameInput, DeltaTime);
-; 446  :         }
+; 496  :           
+; 497  :           GlobalState->TempArena.Used = 0;
 
-  00844	e9 cf fb ff ff	 jmp	 $LN2@WinMain
+  0083d	48 8b 05 00 00
+	00 00		 mov	 rax, QWORD PTR GlobalState
+  00844	48 c7 80 f0 00
+	00 00 00 00 00
+	00		 mov	 QWORD PTR [rax+240], 0
+
+; 498  :         }
+
+  0084f	e9 4f fc ff ff	 jmp	 $LN2@WinMain
 $LN3@WinMain:
 $LN11@WinMain:
 
-; 447  :       }
-; 448  :     }
+; 499  :       }
+; 500  :     }
 
-  00849	eb 07		 jmp	 SHORT $LN9@WinMain
+  00854	eb 1b		 jmp	 SHORT $LN9@WinMain
 $LN8@WinMain:
 
-; 449  :     else
-; 450  :     {
-; 451  :       // TODO(evan): Logging
-; 452  :       return(1);
+; 501  :     else
+; 502  :     {
+; 503  :       Win32LogMessagePlain("Failed to create window\n", false, MESSAGE_SEVERITY_ERROR);
 
-  0084b	b8 01 00 00 00	 mov	 eax, 1
-  00850	eb 0b		 jmp	 SHORT $LN1@WinMain
+  00856	41 b8 02 00 00
+	00		 mov	 r8d, 2
+  0085c	33 d2		 xor	 edx, edx
+  0085e	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:$SG73295
+  00865	e8 00 00 00 00	 call	 Win32LogMessagePlain
+
+; 504  :       return(1);
+
+  0086a	b8 01 00 00 00	 mov	 eax, 1
+  0086f	eb 1f		 jmp	 SHORT $LN1@WinMain
 $LN9@WinMain:
 
-; 453  :     }
-; 454  :   }
+; 505  :     }
+; 506  :   }
 
-  00852	eb 07		 jmp	 SHORT $LN7@WinMain
+  00871	eb 1b		 jmp	 SHORT $LN7@WinMain
 $LN6@WinMain:
 
-; 455  :   else
-; 456  :   {
-; 457  :     // TODO(evan): Logging
-; 458  :     return(1);
+; 507  :   else
+; 508  :   {
+; 509  :     Win32LogMessagePlain("Failed to register window class\n", false, MESSAGE_SEVERITY_ERROR);
 
-  00854	b8 01 00 00 00	 mov	 eax, 1
-  00859	eb 02		 jmp	 SHORT $LN1@WinMain
+  00873	41 b8 02 00 00
+	00		 mov	 r8d, 2
+  00879	33 d2		 xor	 edx, edx
+  0087b	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:$SG73296
+  00882	e8 00 00 00 00	 call	 Win32LogMessagePlain
+
+; 510  :     return(1);
+
+  00887	b8 01 00 00 00	 mov	 eax, 1
+  0088c	eb 02		 jmp	 SHORT $LN1@WinMain
 $LN7@WinMain:
 
-; 459  :   }
-; 460  :   
-; 461  :   return(0);
+; 511  :   }
+; 512  :   
+; 513  :   return(0);
 
-  0085b	33 c0		 xor	 eax, eax
+  0088e	33 c0		 xor	 eax, eax
 $LN1@WinMain:
 
-; 462  : }
+; 514  : }
 
-  0085d	48 81 c4 78 02
+  00890	48 81 c4 78 02
 	00 00		 add	 rsp, 632		; 00000278H
-  00864	5f		 pop	 rdi
-  00865	5e		 pop	 rsi
-  00866	c3		 ret	 0
+  00897	5f		 pop	 rdi
+  00898	5e		 pop	 rsi
+  00899	c3		 ret	 0
 WinMain	ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\platform.h
+; File w:\new-horizons\code\string.h
 _TEXT	SEGMENT
-Dimension$ = 48
-Memory$ = 56
-Input$ = 64
-DeltaTime$ = 72
+Length$ = 48
+TempSecond$ = 56
+$T1 = 80
+$T2 = 96
+Result$ = 112
+$T3 = 128
+__$ReturnAddress$ = 176
+First$ = 184
+Second$ = 192
+Arena$ = 200
+CopyMemory$ = 208
+CatStringsPlain PROC
+
+; 98   : {
+
+  00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
+  00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  0000a	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000f	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00014	56		 push	 rsi
+  00015	57		 push	 rdi
+  00016	48 81 ec 98 00
+	00 00		 sub	 rsp, 152		; 00000098H
+
+; 99   :   s32 Length = StringLength(Second);
+
+  0001d	48 8b 8c 24 c0
+	00 00 00	 mov	 rcx, QWORD PTR Second$[rsp]
+  00025	e8 00 00 00 00	 call	 StringLength
+  0002a	89 44 24 30	 mov	 DWORD PTR Length$[rsp], eax
+
+; 100  :   string8 TempSecond = {Second, Length};
+
+  0002e	48 8b 84 24 c0
+	00 00 00	 mov	 rax, QWORD PTR Second$[rsp]
+  00036	48 89 44 24 38	 mov	 QWORD PTR TempSecond$[rsp], rax
+  0003b	8b 44 24 30	 mov	 eax, DWORD PTR Length$[rsp]
+  0003f	89 44 24 40	 mov	 DWORD PTR TempSecond$[rsp+8], eax
+
+; 101  :   
+; 102  :   string8 Result = CatStrings(First, TempSecond, Arena, CopyMemory);
+
+  00043	48 8d 44 24 50	 lea	 rax, QWORD PTR $T1[rsp]
+  00048	48 8d 4c 24 38	 lea	 rcx, QWORD PTR TempSecond$[rsp]
+  0004d	48 8b f8	 mov	 rdi, rax
+  00050	48 8b f1	 mov	 rsi, rcx
+  00053	b9 10 00 00 00	 mov	 ecx, 16
+  00058	f3 a4		 rep movsb
+  0005a	48 8d 44 24 60	 lea	 rax, QWORD PTR $T2[rsp]
+  0005f	48 8b f8	 mov	 rdi, rax
+  00062	48 8b b4 24 b8
+	00 00 00	 mov	 rsi, QWORD PTR First$[rsp]
+  0006a	b9 10 00 00 00	 mov	 ecx, 16
+  0006f	f3 a4		 rep movsb
+  00071	48 8b 84 24 d0
+	00 00 00	 mov	 rax, QWORD PTR CopyMemory$[rsp]
+  00079	48 89 44 24 20	 mov	 QWORD PTR [rsp+32], rax
+  0007e	4c 8b 8c 24 c8
+	00 00 00	 mov	 r9, QWORD PTR Arena$[rsp]
+  00086	4c 8d 44 24 50	 lea	 r8, QWORD PTR $T1[rsp]
+  0008b	48 8d 54 24 60	 lea	 rdx, QWORD PTR $T2[rsp]
+  00090	48 8d 8c 24 80
+	00 00 00	 lea	 rcx, QWORD PTR $T3[rsp]
+  00098	e8 00 00 00 00	 call	 CatStrings
+  0009d	48 8d 4c 24 70	 lea	 rcx, QWORD PTR Result$[rsp]
+  000a2	48 8b f9	 mov	 rdi, rcx
+  000a5	48 8b f0	 mov	 rsi, rax
+  000a8	b9 10 00 00 00	 mov	 ecx, 16
+  000ad	f3 a4		 rep movsb
+
+; 103  :   return(Result);
+
+  000af	48 8d 44 24 70	 lea	 rax, QWORD PTR Result$[rsp]
+  000b4	48 8b bc 24 b0
+	00 00 00	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
+  000bc	48 8b f0	 mov	 rsi, rax
+  000bf	b9 10 00 00 00	 mov	 ecx, 16
+  000c4	f3 a4		 rep movsb
+  000c6	48 8b 84 24 b0
+	00 00 00	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
+
+; 104  : }
+
+  000ce	48 81 c4 98 00
+	00 00		 add	 rsp, 152		; 00000098H
+  000d5	5f		 pop	 rdi
+  000d6	5e		 pop	 rsi
+  000d7	c3		 ret	 0
+CatStringsPlain ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\string.h
+_TEXT	SEGMENT
+Result$ = 32
+__$ReturnAddress$ = 80
+First$ = 88
+Second$ = 96
+Arena$ = 104
+CopyMemory$ = 112
+CatStrings PROC
+
+; 86   : {
+
+  00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
+  00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  0000a	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000f	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00014	56		 push	 rsi
+  00015	57		 push	 rdi
+  00016	48 83 ec 38	 sub	 rsp, 56			; 00000038H
+
+; 87   :   string8 Result;
+; 88   :   Result.Length = First.Length + Second.Length;
+
+  0001a	48 8b 44 24 58	 mov	 rax, QWORD PTR First$[rsp]
+  0001f	8b 40 08	 mov	 eax, DWORD PTR [rax+8]
+  00022	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Second$[rsp]
+  00027	03 41 08	 add	 eax, DWORD PTR [rcx+8]
+  0002a	89 44 24 28	 mov	 DWORD PTR Result$[rsp+8], eax
+
+; 89   :   Result.Str = PushArray(Arena, s8, Result.Length);
+
+  0002e	48 63 44 24 28	 movsxd	 rax, DWORD PTR Result$[rsp+8]
+  00033	48 8b d0	 mov	 rdx, rax
+  00036	48 8b 4c 24 68	 mov	 rcx, QWORD PTR Arena$[rsp]
+  0003b	e8 00 00 00 00	 call	 PushSize
+  00040	48 89 44 24 20	 mov	 QWORD PTR Result$[rsp], rax
+
+; 90   :   CopyMemory(Result.Str, First.Str, First.Length);
+
+  00045	48 8b 44 24 58	 mov	 rax, QWORD PTR First$[rsp]
+  0004a	48 63 40 08	 movsxd	 rax, DWORD PTR [rax+8]
+  0004e	4c 8b c0	 mov	 r8, rax
+  00051	48 8b 44 24 58	 mov	 rax, QWORD PTR First$[rsp]
+  00056	48 8b 10	 mov	 rdx, QWORD PTR [rax]
+  00059	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Result$[rsp]
+  0005e	ff 54 24 70	 call	 QWORD PTR CopyMemory$[rsp]
+
+; 91   :   CopyMemory(Result.Str + First.Length, Second.Str, Second.Length);
+
+  00062	48 8b 44 24 60	 mov	 rax, QWORD PTR Second$[rsp]
+  00067	48 63 40 08	 movsxd	 rax, DWORD PTR [rax+8]
+  0006b	48 8b 4c 24 58	 mov	 rcx, QWORD PTR First$[rsp]
+  00070	48 63 49 08	 movsxd	 rcx, DWORD PTR [rcx+8]
+  00074	48 8b 54 24 20	 mov	 rdx, QWORD PTR Result$[rsp]
+  00079	48 03 d1	 add	 rdx, rcx
+  0007c	48 8b ca	 mov	 rcx, rdx
+  0007f	4c 8b c0	 mov	 r8, rax
+  00082	48 8b 44 24 60	 mov	 rax, QWORD PTR Second$[rsp]
+  00087	48 8b 10	 mov	 rdx, QWORD PTR [rax]
+  0008a	ff 54 24 70	 call	 QWORD PTR CopyMemory$[rsp]
+
+; 92   :   
+; 93   :   return(Result);
+
+  0008e	48 8d 44 24 20	 lea	 rax, QWORD PTR Result$[rsp]
+  00093	48 8b 7c 24 50	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
+  00098	48 8b f0	 mov	 rsi, rax
+  0009b	b9 10 00 00 00	 mov	 ecx, 16
+  000a0	f3 a4		 rep movsb
+  000a2	48 8b 44 24 50	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
+
+; 94   : }
+
+  000a7	48 83 c4 38	 add	 rsp, 56			; 00000038H
+  000ab	5f		 pop	 rdi
+  000ac	5e		 pop	 rsi
+  000ad	c3		 ret	 0
+CatStrings ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\string.h
+_TEXT	SEGMENT
+Result$ = 32
+__$ReturnAddress$ = 80
+String$ = 88
+Arena$ = 96
+CopyMemory$ = 104
+DuplicateString PROC
+
+; 31   : {
+
+  00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
+  00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  0000a	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000f	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00014	56		 push	 rsi
+  00015	57		 push	 rdi
+  00016	48 83 ec 38	 sub	 rsp, 56			; 00000038H
+
+; 32   :   string8 Result;
+; 33   :   Result.Length = String.Length;
+
+  0001a	48 8b 44 24 58	 mov	 rax, QWORD PTR String$[rsp]
+  0001f	8b 40 08	 mov	 eax, DWORD PTR [rax+8]
+  00022	89 44 24 28	 mov	 DWORD PTR Result$[rsp+8], eax
+
+; 34   :   Result.Str = PushArray(Arena, s8, Result.Length);
+
+  00026	48 63 44 24 28	 movsxd	 rax, DWORD PTR Result$[rsp+8]
+  0002b	48 8b d0	 mov	 rdx, rax
+  0002e	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Arena$[rsp]
+  00033	e8 00 00 00 00	 call	 PushSize
+  00038	48 89 44 24 20	 mov	 QWORD PTR Result$[rsp], rax
+
+; 35   :   CopyMemory(Result.Str, String.Str, Result.Length*sizeof(s8));
+
+  0003d	48 63 44 24 28	 movsxd	 rax, DWORD PTR Result$[rsp+8]
+  00042	4c 8b c0	 mov	 r8, rax
+  00045	48 8b 44 24 58	 mov	 rax, QWORD PTR String$[rsp]
+  0004a	48 8b 10	 mov	 rdx, QWORD PTR [rax]
+  0004d	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Result$[rsp]
+  00052	ff 54 24 68	 call	 QWORD PTR CopyMemory$[rsp]
+
+; 36   :   
+; 37   :   return(Result);
+
+  00056	48 8d 44 24 20	 lea	 rax, QWORD PTR Result$[rsp]
+  0005b	48 8b 7c 24 50	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
+  00060	48 8b f0	 mov	 rsi, rax
+  00063	b9 10 00 00 00	 mov	 ecx, 16
+  00068	f3 a4		 rep movsb
+  0006a	48 8b 44 24 50	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
+
+; 38   : }
+
+  0006f	48 83 c4 38	 add	 rsp, 56			; 00000038H
+  00073	5f		 pop	 rdi
+  00074	5e		 pop	 rsi
+  00075	c3		 ret	 0
+DuplicateString ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\string.h
+_TEXT	SEGMENT
+Result$ = 32
+__$ReturnAddress$ = 80
+Str$ = 88
+Arena$ = 96
+CopyMemory$ = 104
+CreateString PROC
+
+; 20   : {
+
+  00000	4c 89 4c 24 20	 mov	 QWORD PTR [rsp+32], r9
+  00005	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
+  0000a	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000f	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00014	56		 push	 rsi
+  00015	57		 push	 rdi
+  00016	48 83 ec 38	 sub	 rsp, 56			; 00000038H
+
+; 21   :   string8 Result;
+; 22   :   Result.Length = StringLength(Str);
+
+  0001a	48 8b 4c 24 58	 mov	 rcx, QWORD PTR Str$[rsp]
+  0001f	e8 00 00 00 00	 call	 StringLength
+  00024	89 44 24 28	 mov	 DWORD PTR Result$[rsp+8], eax
+
+; 23   :   Result.Str = PushArray(Arena, s8, Result.Length);
+
+  00028	48 63 44 24 28	 movsxd	 rax, DWORD PTR Result$[rsp+8]
+  0002d	48 8b d0	 mov	 rdx, rax
+  00030	48 8b 4c 24 60	 mov	 rcx, QWORD PTR Arena$[rsp]
+  00035	e8 00 00 00 00	 call	 PushSize
+  0003a	48 89 44 24 20	 mov	 QWORD PTR Result$[rsp], rax
+
+; 24   :   CopyMemory(Result.Str, Str, Result.Length*sizeof(s8));
+
+  0003f	48 63 44 24 28	 movsxd	 rax, DWORD PTR Result$[rsp+8]
+  00044	4c 8b c0	 mov	 r8, rax
+  00047	48 8b 54 24 58	 mov	 rdx, QWORD PTR Str$[rsp]
+  0004c	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Result$[rsp]
+  00051	ff 54 24 68	 call	 QWORD PTR CopyMemory$[rsp]
+
+; 25   :   
+; 26   :   return(Result);
+
+  00055	48 8d 44 24 20	 lea	 rax, QWORD PTR Result$[rsp]
+  0005a	48 8b 7c 24 50	 mov	 rdi, QWORD PTR __$ReturnAddress$[rsp]
+  0005f	48 8b f0	 mov	 rsi, rax
+  00062	b9 10 00 00 00	 mov	 ecx, 16
+  00067	f3 a4		 rep movsb
+  00069	48 8b 44 24 50	 mov	 rax, QWORD PTR __$ReturnAddress$[rsp]
+
+; 27   : }
+
+  0006e	48 83 c4 38	 add	 rsp, 56			; 00000038H
+  00072	5f		 pop	 rdi
+  00073	5e		 pop	 rsi
+  00074	c3		 ret	 0
+CreateString ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\string.h
+_TEXT	SEGMENT
+Count$ = 0
+Str$ = 32
+StringLength PROC
+
+; 8    : {
+
+  00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00005	48 83 ec 18	 sub	 rsp, 24
+
+; 9    :   s32 Count = 0;
+
+  00009	c7 04 24 00 00
+	00 00		 mov	 DWORD PTR Count$[rsp], 0
+$LN2@StringLeng:
+
+; 10   :   while(Str[Count] != 0)
+
+  00010	48 63 04 24	 movsxd	 rax, DWORD PTR Count$[rsp]
+  00014	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Str$[rsp]
+  00019	0f be 04 01	 movsx	 eax, BYTE PTR [rcx+rax]
+  0001d	85 c0		 test	 eax, eax
+  0001f	74 0a		 je	 SHORT $LN3@StringLeng
+
+; 11   :   {
+; 12   :     ++Count;
+
+  00021	8b 04 24	 mov	 eax, DWORD PTR Count$[rsp]
+  00024	ff c0		 inc	 eax
+  00026	89 04 24	 mov	 DWORD PTR Count$[rsp], eax
+
+; 13   :   }
+
+  00029	eb e5		 jmp	 SHORT $LN2@StringLeng
+$LN3@StringLeng:
+
+; 14   :   
+; 15   :   return(Count);
+
+  0002b	8b 04 24	 mov	 eax, DWORD PTR Count$[rsp]
+
+; 16   : }
+
+  0002e	48 83 c4 18	 add	 rsp, 24
+  00032	c3		 ret	 0
+StringLength ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\platform.h
+_TEXT	SEGMENT
+Memory$ = 48
+Input$ = 56
+DeltaTime$ = 64
 GameUpdateAndRenderStub PROC
 
-; 167  : {
+; 200  : {
 
-  00000	f3 0f 11 5c 24
-	20		 movss	 DWORD PTR [rsp+32], xmm3
-  00006	4c 89 44 24 18	 mov	 QWORD PTR [rsp+24], r8
-  0000b	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
-  00010	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
-  00015	48 83 ec 28	 sub	 rsp, 40			; 00000028H
+  00000	f3 0f 11 54 24
+	18		 movss	 DWORD PTR [rsp+24], xmm2
+  00006	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  0000b	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  00010	48 83 ec 28	 sub	 rsp, 40			; 00000028H
 
-; 168  :   Memory->OutputString("Inside Stub\n");
+; 201  :   Memory->LogMessagePlain("Inside Stub\n", true, MESSAGE_SEVERITY_DEBUG);
 
-  00019	48 8d 0d 00 00
-	00 00		 lea	 rcx, OFFSET FLAT:$SG7757
-  00020	48 8b 44 24 38	 mov	 rax, QWORD PTR Memory$[rsp]
-  00025	ff 50 30	 call	 QWORD PTR [rax+48]
+  00014	45 33 c0	 xor	 r8d, r8d
+  00017	ba 01 00 00 00	 mov	 edx, 1
+  0001c	48 8d 0d 00 00
+	00 00		 lea	 rcx, OFFSET FLAT:$SG7785
+  00023	48 8b 44 24 30	 mov	 rax, QWORD PTR Memory$[rsp]
+  00028	ff 50 50	 call	 QWORD PTR [rax+80]
 
-; 169  :   return(false);
+; 202  :   return(false);
 
-  00028	33 c0		 xor	 eax, eax
+  0002b	33 c0		 xor	 eax, eax
 
-; 170  : }
+; 203  : }
 
-  0002a	48 83 c4 28	 add	 rsp, 40			; 00000028H
-  0002e	c3		 ret	 0
+  0002d	48 83 c4 28	 add	 rsp, 40			; 00000028H
+  00031	c3		 ret	 0
 GameUpdateAndRenderStub ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\platform.h
+; File w:\new-horizons\code\platform.h
+_TEXT	SEGMENT
+Result$ = 0
+Arena$ = 32
+Size$ = 40
+PushSize PROC
+
+; 102  : {
+
+  00000	48 89 54 24 10	 mov	 QWORD PTR [rsp+16], rdx
+  00005	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
+  0000a	48 83 ec 18	 sub	 rsp, 24
+
+; 103  :   void *Result = 0;
+
+  0000e	48 c7 04 24 00
+	00 00 00	 mov	 QWORD PTR Result$[rsp], 0
+
+; 104  :   if(Arena->Size >= Arena->Used + Size)
+
+  00016	48 8b 44 24 20	 mov	 rax, QWORD PTR Arena$[rsp]
+  0001b	48 8b 40 10	 mov	 rax, QWORD PTR [rax+16]
+  0001f	48 03 44 24 28	 add	 rax, QWORD PTR Size$[rsp]
+  00024	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Arena$[rsp]
+  00029	48 39 41 08	 cmp	 QWORD PTR [rcx+8], rax
+  0002d	72 2c		 jb	 SHORT $LN2@PushSize
+
+; 105  :   {
+; 106  :     Result = Arena->Memory + Arena->Used;
+
+  0002f	48 8b 44 24 20	 mov	 rax, QWORD PTR Arena$[rsp]
+  00034	48 8b 00	 mov	 rax, QWORD PTR [rax]
+  00037	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Arena$[rsp]
+  0003c	48 03 41 10	 add	 rax, QWORD PTR [rcx+16]
+  00040	48 89 04 24	 mov	 QWORD PTR Result$[rsp], rax
+
+; 107  :     Arena->Used += Size;
+
+  00044	48 8b 44 24 20	 mov	 rax, QWORD PTR Arena$[rsp]
+  00049	48 8b 40 10	 mov	 rax, QWORD PTR [rax+16]
+  0004d	48 03 44 24 28	 add	 rax, QWORD PTR Size$[rsp]
+  00052	48 8b 4c 24 20	 mov	 rcx, QWORD PTR Arena$[rsp]
+  00057	48 89 41 10	 mov	 QWORD PTR [rcx+16], rax
+$LN2@PushSize:
+
+; 108  :   }
+; 109  :   
+; 110  :   return(Result);
+
+  0005b	48 8b 04 24	 mov	 rax, QWORD PTR Result$[rsp]
+
+; 111  : }
+
+  0005f	48 83 c4 18	 add	 rsp, 24
+  00063	c3		 ret	 0
+PushSize ENDP
+_TEXT	ENDS
+; Function compile flags: /Odtp
+; File w:\new-horizons\code\platform.h
 _TEXT	SEGMENT
 Arena$ = 8
 BackingBuffer$ = 16
@@ -3007,18 +4290,18 @@ InitializeArena PROC
 InitializeArena ENDP
 _TEXT	ENDS
 ; Function compile flags: /Odtp
-; File w:\engine\code\types.h
+; File w:\new-horizons\code\types.h
 _TEXT	SEGMENT
 Result$ = 0
 Value$ = 32
 SafeTruncateUInt64 PROC
 
-; 49   : {
+; 55   : {
 
   00000	48 89 4c 24 08	 mov	 QWORD PTR [rsp+8], rcx
   00005	48 83 ec 18	 sub	 rsp, 24
 
-; 50   :   Assert(Value <= 0xFFFFFFFF);
+; 56   :   Assert(Value <= 0xFFFFFFFF);
 
   00009	b8 ff ff ff ff	 mov	 eax, -1			; ffffffffH
   0000e	48 39 44 24 20	 cmp	 QWORD PTR Value$[rsp], rax
@@ -3028,16 +4311,16 @@ SafeTruncateUInt64 PROC
 	00		 mov	 DWORD PTR ds:0, 0
 $LN2@SafeTrunca:
 
-; 51   :   u32 Result = (u32)Value;
+; 57   :   u32 Result = (u32)Value;
 
   00020	8b 44 24 20	 mov	 eax, DWORD PTR Value$[rsp]
   00024	89 04 24	 mov	 DWORD PTR Result$[rsp], eax
 
-; 52   :   return(Result);
+; 58   :   return(Result);
 
   00027	8b 04 24	 mov	 eax, DWORD PTR Result$[rsp]
 
-; 53   : }
+; 59   : }
 
   0002a	48 83 c4 18	 add	 rsp, 24
   0002e	c3		 ret	 0

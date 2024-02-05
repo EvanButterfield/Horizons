@@ -2,13 +2,27 @@ int _fltused;
 
 #include "types.h"
 #include "platform.h"
+#include "string.h"
 
 #define COBJMACROS
 #include <windows.h>
 #include <windowsx.h>
 #include <xinput.h>
 
+#undef CopyMemory
+#undef ZeroMemory
+
 #include "win32.h"
+
+internal PLATFORM_COPY_MEMORY(Win32CopyMemory)
+{
+  RtlCopyMemory(Dest, Source, Length);
+}
+
+internal PLATFORM_ZERO_MEMORY(Win32ZeroMemory)
+{
+  RtlZeroMemory(Dest, Length);
+}
 
 internal inline window_dimension
 Win32GetWindowDimension(HWND Window)
@@ -44,9 +58,33 @@ X_INPUT_SET_STATE(XInputSetStateStub)
 global x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define XInputSetState XInputSetState_
 
-internal PLATFORM_OUTPUT_STRING(Win32OutputString)
+internal void
+Win32OutputString(s8 *Str)
 {
-  OutputDebugStringA(Text);
+  OutputDebugStringA(Str);
+}
+
+internal PLATFORM_LOG_MESSAGE(Win32LogMessage)
+{
+  string8 From;
+  if(FromEngine)
+  {
+    From = CreateString("[ENGINE]: ", &GlobalState->TempArena, Win32CopyMemory);
+  }
+  else
+  {
+    From = CreateString("[PLATFORM (WIN32)]: ", &GlobalState->TempArena, Win32CopyMemory);
+  }
+  
+  string8 Header = CatStrings(From, SeverityMessages[Severity], &GlobalState->TempArena, Win32CopyMemory);
+  string8 Final = CatStrings(Header, Message, &GlobalState->TempArena, Win32CopyMemory);
+  Final.Str[Final.Length] = '\0';
+  Win32OutputString(Final.Str);
+}
+
+internal PLATFORM_LOG_MESSAGE_PLAIN(Win32LogMessagePlain)
+{
+  Win32LogMessage(CreateString(Message, &GlobalState->TempArena, Win32CopyMemory), FromEngine, Severity);
 }
 
 internal void
@@ -95,6 +133,7 @@ Win32LoadGameCode(s8 *SourceDllName, s8 *TempDllName, s8 *LockName)
   if(!GetFileAttributesExA(LockName, GetFileExInfoStandard, &Ignored))
   {
     Result.GameDll = LoadLibraryA(TempDllName);
+    DWORD Error = GetLastError();
     if(Result.GameDll)
     {
       Result.GameUpdateAndRender =
@@ -141,31 +180,39 @@ internal PLATFORM_OPEN_FILE(Win32OpenFile)
     ShareMode |= FILE_SHARE_WRITE;
   }
   
-  HANDLE File = CreateFileA(FileName, AccessFlags, ShareMode, 0,
+  HANDLE File = CreateFileA(FileName.Str, AccessFlags, ShareMode, 0,
                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   
-  return(File);
+  platform_file_handle Result;
+  Result.Handle = File;
+  Result.FileName = DuplicateString(FileName, &GlobalState->PermArena, Win32CopyMemory);
+  return(Result);
 }
 
 internal PLATFORM_GET_FILE_SIZE(Win32GetFileSize)
 {
   u32 Result = 0;
   
-  if(Handle != INVALID_HANDLE_VALUE)
+  if(Handle.Handle != INVALID_HANDLE_VALUE)
   {
     LARGE_INTEGER FileSize;
-    if(GetFileSizeEx(Handle, &FileSize))
+    if(GetFileSizeEx(Handle.Handle, &FileSize))
     {
       Result = SafeTruncateUInt64(FileSize.QuadPart);
     }
     else
     {
-      // TODO(evan): Logging
+      string8 Message = CatStringsPlain(Handle.FileName, ": could not GetFileSize in Win32GetFileSize\n",
+                                        &GlobalState->TempArena, Win32CopyMemory);
+      Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
     }
   }
   else
   {
-    // TODO(evan): Logging
+    string8 Message =
+      CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32GetFileSize\n",
+                      &GlobalState->TempArena, Win32CopyMemory);
+    Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
   }
   
   return(Result);
@@ -173,28 +220,36 @@ internal PLATFORM_GET_FILE_SIZE(Win32GetFileSize)
 
 internal PLATFORM_READ_ENTIRE_FILE(Win32ReadEntireFile)
 {
-  if(Handle != INVALID_HANDLE_VALUE)
+  if(Handle.Handle != INVALID_HANDLE_VALUE)
   {
     if(Dest)
     {
       DWORD BytesRead;
-      if(ReadFile(Handle, Dest, FileSize, &BytesRead, 0) &&
+      if(ReadFile(Handle.Handle, Dest, FileSize, &BytesRead, 0) &&
          BytesRead == FileSize)
       {
       }
       else
       {
-        // TODO(evan): Logging
+        string8 Message = CatStringsPlain(Handle.FileName, ": failed to ReadFile in Win32ReadEntireFile\n",
+                                          &GlobalState->TempArena, Win32CopyMemory);
+        Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
       }
     }
     else
     {
-      // TODO(evan): Logging
+      string8 Message =
+        CatStringsPlain(Handle.FileName, ": the \'Dest\' passed to Win32ReadEntireFile was invalid\n",
+                        &GlobalState->TempArena, Win32CopyMemory);
+      Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
     }
   }
   else
   {
-    // TODO(evan): Logging
+    string8 Message =
+      CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32ReadEntireFile\n",
+                      &GlobalState->TempArena, Win32CopyMemory);
+    Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
   }
 }
 
@@ -202,7 +257,7 @@ internal PLATFORM_WRITE_ENTIRE_FILE(Win32WriteEntireFile)
 {
   b32 Result = false;
   
-  HANDLE File = *((HANDLE *)Handle);
+  HANDLE File = *((HANDLE *)Handle.Handle);
   if(File != INVALID_HANDLE_VALUE)
   {
     DWORD BytesWritten;
@@ -213,12 +268,17 @@ internal PLATFORM_WRITE_ENTIRE_FILE(Win32WriteEntireFile)
     }
     else
     {
-      // TODO(evan): Logging
+      string8 Message = CatStringsPlain(Handle.FileName, ": failed to WriteFile in Win32WriteEntireFile\n",
+                                        &GlobalState->TempArena, Win32CopyMemory);
+      Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
     }
   }
   else
   {
-    // TODO(evan): Logging
+    string8 Message =
+      CatStringsPlain(Handle.FileName, ": did not have a valid handle when being passed to Win32WriteEntireFile\n",
+                      &GlobalState->TempArena, Win32CopyMemory);
+    Win32LogMessage(Message, false, MESSAGE_SEVERITY_WARNING);
   }
   
   return(Result);
@@ -226,7 +286,7 @@ internal PLATFORM_WRITE_ENTIRE_FILE(Win32WriteEntireFile)
 
 internal PLATFORM_CLOSE_FILE(Win32CloseFile)
 {
-  CloseHandle(Handle);
+  CloseHandle(Handle.Handle);
 }
 
 internal inline LARGE_INTEGER
@@ -245,16 +305,6 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
   return(Result);
 }
 
-internal PLATFORM_COPY_MEMORY(Win32CopyMemory)
-{
-  RtlCopyMemory(Dest, Source, Length);
-}
-
-internal PLATFORM_ZERO_MEMORY(Win32ZeroMemory)
-{
-  RtlZeroMemory(Dest, Length);
-}
-
 internal LRESULT CALLBACK
 Win32WindowProc(HWND Window,
                 UINT Message,
@@ -269,7 +319,7 @@ WinMain(HINSTANCE Instance,
 {
   // Assert((uint64)(*((int64*)__readgsqword(0x60) + 0x23)) >= 10);
   
-  memory EngineMemory = {0};
+  memory GameMemory = {0};
   {
 #if HORIZONS_INTERNAL
     LPVOID BaseAddress = (LPVOID)Tebibytes(2);
@@ -277,25 +327,38 @@ WinMain(HINSTANCE Instance,
     LPVOID BaseAddress = 0;
 #endif
     
-    EngineMemory.PermanentStorageSize = Mebibytes(64);
-    EngineMemory.TempStorageSize = Gibibytes(1);
+    GameMemory.PermanentStorageSize = Mebibytes(64);
+    GameMemory.TempStorageSize = Gibibytes(1);
     
-    EngineMemory.OpenFile = Win32OpenFile;
-    EngineMemory.GetFileSize = Win32GetFileSize;
-    EngineMemory.ReadEntireFile = Win32ReadEntireFile;
-    EngineMemory.WriteEntireFile = Win32WriteEntireFile;
-    EngineMemory.CloseFile = Win32CloseFile;
-    EngineMemory.OutputString = Win32OutputString;
+    GameMemory.OpenFile = Win32OpenFile;
+    GameMemory.GetFileSize = Win32GetFileSize;
+    GameMemory.ReadEntireFile = Win32ReadEntireFile;
+    GameMemory.WriteEntireFile = Win32WriteEntireFile;
+    GameMemory.CloseFile = Win32CloseFile;
+    GameMemory.LogMessage = Win32LogMessage;
+    GameMemory.LogMessagePlain = Win32LogMessagePlain;
     
-    memory_index PlatformMemorySize = Mebibytes(64);
+    GameMemory.CopyMemory = Win32CopyMemory;
+    GameMemory.ZeroMemory = Win32ZeroMemory;
     
-    memory_index TotalEngineMemorySize = EngineMemory.PermanentStorageSize + EngineMemory.TempStorageSize + PlatformMemorySize;
-    GlobalState = VirtualAlloc(BaseAddress, sizeof(win32_state) + TotalEngineMemorySize,
+    memory_index PlatformPermMemorySize = Mebibytes(64);
+    memory_index PlatformTempMemorySize = Mebibytes(64);
+    memory_index PlatformMemorySize = PlatformPermMemorySize + PlatformTempMemorySize;
+    
+    memory_index TotalGameMemorySize = (GameMemory.PermanentStorageSize +
+                                        GameMemory.TempStorageSize +
+                                        PlatformMemorySize);
+    GlobalState = VirtualAlloc(BaseAddress, sizeof(win32_state) + TotalGameMemorySize,
                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     
-    InitializeArena(&GlobalState->Arena, (u8 *)GlobalState + sizeof(win32_state), PlatformMemorySize);
-    EngineMemory.PermanentStorage = GlobalState->Arena.Memory + PlatformMemorySize;
-    EngineMemory.TempStorage = (u8 *)EngineMemory.PermanentStorage + EngineMemory.PermanentStorageSize;
+    InitializeArena(&GlobalState->PermArena,
+                    (u8 *)GlobalState + sizeof(win32_state),
+                    PlatformPermMemorySize);
+    InitializeArena(&GlobalState->TempArena,
+                    GlobalState->PermArena.Memory + PlatformPermMemorySize,
+                    PlatformTempMemorySize);
+    GameMemory.PermanentStorage = GlobalState->TempArena.Memory + PlatformTempMemorySize;
+    GameMemory.TempStorage = (u8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize;
   }
   
   LARGE_INTEGER PerfCountFrequencyResult;
@@ -316,13 +379,13 @@ WinMain(HINSTANCE Instance,
   WindowClass.hCursor = LoadCursorW(0, IDC_ARROW);
   WindowClass.lpszClassName = L"WindowClass";
   
-  s8 *GameCodeDllName = "engine.dll";
-  s8 *GameCodeTempDllName = "engine_temp.dll";
+  s8 *GameCodeDllName = "horizons.dll";
+  s8 *GameCodeTempDllName = "horizons_temp.dll";
   s8 *GameCodeLockName = "lock.tmp";
   
   if(RegisterClassW(&WindowClass))
   {
-    GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Engine",
+    GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Horizons",
                                         WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                                         CW_USEDEFAULT, CW_USEDEFAULT, 1400, 700,
                                         0, 0, Instance, 0);
@@ -344,7 +407,7 @@ WinMain(HINSTANCE Instance,
       
       win32_game_code Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
       
-      if(EngineMemory.PermanentStorage)
+      if(GameMemory.PermanentStorage)
       {
         GlobalState->WindowDimension = Win32GetWindowDimension(GlobalState->Window);
         
@@ -379,7 +442,7 @@ WinMain(HINSTANCE Instance,
           }
           
           {
-            controller_input *Input = &GlobalState->GameInput.Controller;
+            game_controller_input *Input = &GlobalState->GameInput.Controller;
             
             XINPUT_STATE ControllerState = {0};
             XINPUT_GAMEPAD *Pad = &ControllerState.Gamepad;
@@ -422,39 +485,28 @@ WinMain(HINSTANCE Instance,
           
           {
             window_dimension NewWindowDimension = Win32GetWindowDimension(GlobalState->Window);
-            b32 WindowResized = false;
             if(NewWindowDimension.Width != GlobalState->WindowDimension.Width ||
                NewWindowDimension.Height != GlobalState->WindowDimension.Height)
             {
-              WindowResized = true;
               GlobalState->WindowDimension = NewWindowDimension;
             }
           }
           
-          if(GlobalState->ShowCursor)
-          {
-            RECT WindowRect;
-            GetClientRect(GlobalState->Window, &WindowRect);
-            
-            POINT Center = { WindowRect.right/2, WindowRect.bottom/2 };
-            ClientToScreen(GlobalState->Window, &Center);
-            // SetCursorPos(Center.x, Center.y);
-          }
+          ShouldClose = Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
           
-          ShouldClose = Game.GameUpdateAndRender(GlobalState->WindowDimension,
-                                                 &EngineMemory, &GlobalState->GameInput, DeltaTime);
+          GlobalState->TempArena.Used = 0;
         }
       }
     }
     else
     {
-      // TODO(evan): Logging
+      Win32LogMessagePlain("Failed to create window\n", false, MESSAGE_SEVERITY_ERROR);
       return(1);
     }
   }
   else
   {
-    // TODO(evan): Logging
+    Win32LogMessagePlain("Failed to register window class\n", false, MESSAGE_SEVERITY_ERROR);
     return(1);
   }
   

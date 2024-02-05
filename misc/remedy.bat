@@ -1,4 +1,4 @@
 @echo off
-pushd W:\engine\misc
+pushd W:\new-horizons\misc
 start "" "w:\remedy\remedybg.exe" session.rdbg
 popd

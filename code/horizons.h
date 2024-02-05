@@ -9,6 +9,8 @@ typedef struct game_state
 {
   memory_arena PermArena;
   memory_arena TempArena;
+  
+  b32 Initialized;
 } game_state;
 
 #endif //HORIZONS_H

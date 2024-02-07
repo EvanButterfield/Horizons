@@ -174,15 +174,8 @@ typedef PLATFORM_COPY_MEMORY(platform_copy_memory);
 #define PLATFORM_ZERO_MEMORY(name) void name(void *Dest, memory_index Length)
 typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
-// TODO(evan): platform_api
-typedef struct memory
+typedef struct platform_api
 {
-  memory_index PermanentStorageSize;
-  void *PermanentStorage;
-  
-  memory_index TempStorageSize;
-  void *TempStorage;
-  
   platform_open_file *OpenFile;
   platform_get_file_size *GetFileSize;
   platform_read_entire_file *ReadEntireFile;
@@ -193,13 +186,24 @@ typedef struct memory
   
   platform_copy_memory *CopyMemory;
   platform_zero_memory *ZeroMemory;
+} platform_api;
+
+typedef struct memory
+{
+  memory_index PermanentStorageSize;
+  void *PermanentStorage;
+  
+  memory_index TempStorageSize;
+  void *TempStorage;
+  
+  platform_api Platform;
 } memory;
 
 #define GAME_UPDATE_AND_RENDER(name) b32 name(memory *Memory, game_input *Input, f32 DeltaTime)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 internal GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
 {
-  Memory->LogMessagePlain("Inside Stub\n", true, MESSAGE_SEVERITY_DEBUG);
+  Memory->Platform.LogMessagePlain("Inside Stub\n", true, MESSAGE_SEVERITY_DEBUG);
   return(false);
 }
 

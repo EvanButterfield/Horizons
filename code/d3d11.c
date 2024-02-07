@@ -12,7 +12,7 @@ typedef struct vertex
 // https://gist.github.com/mmozeiko/5e727f845db182d468a34d524508ad5f
 
 internal d3d11_state
-InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
+InitD3D11(HWND Window, platform_api *Platform)
 {
   HRESULT Result;
   
@@ -182,9 +182,9 @@ InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
     if(FAILED(Result))
     {
       s8 *Message = ID3D10Blob_GetBufferPointer(Error);
-      LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
-      LogMessagePlain("Failed to compile vertex shader", false,
-                      MESSAGE_SEVERITY_ERROR);
+      Platform->LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
+      Platform->LogMessagePlain("Failed to compile vertex shader", false,
+                                MESSAGE_SEVERITY_ERROR);
       Assert(0);
     }
     
@@ -194,9 +194,9 @@ InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
     if(FAILED(Result))
     {
       s8 *Message = ID3D10Blob_GetBufferPointer(Error);
-      LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
-      LogMessagePlain("Failed to compile pixel shader", false,
-                      MESSAGE_SEVERITY_ERROR);
+      Platform->LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
+      Platform->LogMessagePlain("Failed to compile pixel shader", false,
+                                MESSAGE_SEVERITY_ERROR);
       Assert(0);
     }
     
@@ -348,8 +348,7 @@ InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
 }
 
 internal void
-D3D11Resize(d3d11_state *State, window_dimension New,
-            platform_log_message_plain *LogMessagePlain)
+D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
 {
   if(State->RTView)
   {
@@ -368,7 +367,8 @@ D3D11Resize(d3d11_state *State, window_dimension New,
                                            DXGI_FORMAT_UNKNOWN, 0);
     if(FAILED(Result))
     {
-      LogMessagePlain("Failed to resize swap chain\n", false, MESSAGE_SEVERITY_ERROR);
+      Platform->LogMessagePlain("Failed to resize swap chain\n", false,
+                                MESSAGE_SEVERITY_ERROR);
       Assert(0);
     }
     
@@ -413,9 +413,7 @@ D3D11Resize(d3d11_state *State, window_dimension New,
 }
 
 internal void
-D3D11Draw(d3d11_state *State, window_dimension Dimension,
-          platform_log_message_plain *LogMessagePlain,
-          platform_copy_memory *CopyMemory)
+D3D11Draw(d3d11_state *State, window_dimension Dimension, platform_api *Platform)
 {
   if(State->RTView)
   {
@@ -438,7 +436,7 @@ D3D11Draw(d3d11_state *State, window_dimension Dimension,
       D3D11_MAPPED_SUBRESOURCE Mapped;
       ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
                               0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-      CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
+      Platform->CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
       ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
     }
     
@@ -472,7 +470,8 @@ D3D11Draw(d3d11_state *State, window_dimension Dimension,
   }
   else if(FAILED(Result))
   {
-    LogMessagePlain("Failed to present swap chain\n", false, MESSAGE_SEVERITY_ERROR);
+    Platform->LogMessagePlain("Failed to present swap chain\n", false,
+                              MESSAGE_SEVERITY_ERROR);
     Assert(0);
   }
 }

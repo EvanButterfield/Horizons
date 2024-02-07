@@ -16,29 +16,29 @@ StringLength(s8 *Str)
 }
 
 internal string8
-CreateString(s8 *Str, memory_arena *Arena, platform_copy_memory *CopyMemory)
+CreateString(s8 *Str, memory_arena *Arena, platform_api *Platform)
 {
   string8 Result;
   Result.Length = StringLength(Str);
   Result.Str = PushArray(Arena, s8, Result.Length);
-  CopyMemory(Result.Str, Str, Result.Length*sizeof(s8));
+  Platform->CopyMemory(Result.Str, Str, Result.Length*sizeof(s8));
   
   return(Result);
 }
 
 internal string8
-DuplicateString(string8 String, memory_arena *Arena, platform_copy_memory *CopyMemory)
+DuplicateString(string8 String, memory_arena *Arena, platform_api *Platform)
 {
   string8 Result;
   Result.Length = String.Length;
   Result.Str = PushArray(Arena, s8, Result.Length);
-  CopyMemory(Result.Str, String.Str, Result.Length*sizeof(s8));
+  Platform->CopyMemory(Result.Str, String.Str, Result.Length*sizeof(s8));
   
   return(Result);
 }
 
 internal string8
-IntToString(s32 Int, memory_arena *Arena, platform_copy_memory *CopyMemory)
+IntToString(s32 Int, memory_arena *Arena, platform_api *Platform)
 {
   // Credit to: John Boker
   // https://stackoverflow.com/questions/3982320/convert-integer-to-string-without-access-to-libraries
@@ -77,29 +77,30 @@ IntToString(s32 Int, memory_arena *Arena, platform_copy_memory *CopyMemory)
     }
   }
   
-  string8 Result = CreateString(Buffer, Arena, CopyMemory);
+  string8 Result = CreateString(Buffer, Arena, Platform);
   return(Result);
 }
 
 internal string8
-CatStrings(string8 First, string8 Second, memory_arena *Arena, platform_copy_memory *CopyMemory)
+CatStrings(string8 First, string8 Second, memory_arena *Arena, platform_api *Platform)
 {
   string8 Result;
   Result.Length = First.Length + Second.Length;
   Result.Str = PushArray(Arena, s8, Result.Length);
-  CopyMemory(Result.Str, First.Str, First.Length);
-  CopyMemory(Result.Str + First.Length, Second.Str, Second.Length);
+  Platform->CopyMemory(Result.Str, First.Str, First.Length);
+  Platform->CopyMemory(Result.Str + First.Length, Second.Str, Second.Length);
   
   return(Result);
 }
 
 internal string8
-CatStringsPlain(string8 First, s8 *Second, memory_arena *Arena, platform_copy_memory *CopyMemory)
+CatStringsPlain(string8 First, s8 *Second, memory_arena *Arena,
+                platform_api *Platform)
 {
   s32 Length = StringLength(Second);
   string8 TempSecond = {Second, Length};
   
-  string8 Result = CatStrings(First, TempSecond, Arena, CopyMemory);
+  string8 Result = CatStrings(First, TempSecond, Arena, Platform);
   return(Result);
 }
 

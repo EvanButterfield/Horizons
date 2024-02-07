@@ -20,6 +20,8 @@ typedef struct win32_state
   memory_arena TempArena;
   
   b32 WindowClosed;
+  
+  platform_api Platform;
 } win32_state;
 
 typedef struct win32_game_code

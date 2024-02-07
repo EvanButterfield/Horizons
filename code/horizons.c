@@ -20,7 +20,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   return(false);
 }
 
-// TODO(evan): #if windows
+#if OS_WIN
 #include <windows.h>
 BOOL WINAPI _DllMainCRTStartup(HINSTANCE Instace,
                                DWORD Reason,
@@ -28,3 +28,4 @@ BOOL WINAPI _DllMainCRTStartup(HINSTANCE Instace,
 {
   return(TRUE);
 }
+#endif

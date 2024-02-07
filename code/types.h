@@ -3,6 +3,37 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+#if !defined(COMPILER_MSVC)
+#define COMPILER_MSVC 0
+#endif
+
+#if !defined(COMPILER_LLVM)
+#define COMPILER_LLVM 0
+#endif
+
+#if !COMPILER_MSVC && !COMPILER_LLVM
+#if _MSC_VER
+#undef COMPILER_MSVC
+#define COMPILER_MSVC 1
+#else
+// TODO(evan): More compilers!
+#undef COMPILER_LLVM
+#define COMPILER_LLVM
+#endif
+#endif
+
+#if _WIN32|_WIN64
+#define OS_WIN 1
+#endif
+
+#if unix|__unix|__unix__
+#define OS_UNIX 1
+#endif
+
+#if __APPLE__
+#define OS_MAC 1
+#endif
+
 #define internal static
 #define global static
 

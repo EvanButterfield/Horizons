@@ -36,8 +36,6 @@ Win32GetWindowDimension(HWND Window)
   return(Dimension);
 }
 
-#define AssertHR(HR) Assert(SUCCEEDED(HR))
-
 global win32_state *GlobalState;
 
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
@@ -305,6 +303,8 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
   return(Result);
 }
 
+#include "d3d11.c"
+
 internal LRESULT CALLBACK
 Win32WindowProc(HWND Window,
                 UINT Message,
@@ -361,55 +361,58 @@ WinMain(HINSTANCE Instance,
     GameMemory.TempStorage = (u8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize;
   }
   
-  LARGE_INTEGER PerfCountFrequencyResult;
-  QueryPerformanceFrequency(&PerfCountFrequencyResult);
-  GlobalState->PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
-  
-  // NOTE(evan): Set the Windows schedular granularity to 1ms
-  // so that Sleep() can be more granular
-  UINT DesiredSchedularMS = 1;
-  b32 SleepIsGranular = (timeBeginPeriod(DesiredSchedularMS) == TIMERR_NOERROR);
-  
-  Win32LoadXInput();
-  
-  WNDCLASSW WindowClass = {0};
-  WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
-  WindowClass.lpfnWndProc = Win32WindowProc;
-  WindowClass.hInstance = Instance;
-  WindowClass.hCursor = LoadCursorW(0, IDC_ARROW);
-  WindowClass.lpszClassName = L"WindowClass";
-  
-  s8 *GameCodeDllName = "horizons.dll";
-  s8 *GameCodeTempDllName = "horizons_temp.dll";
-  s8 *GameCodeLockName = "lock.tmp";
-  
-  if(RegisterClassW(&WindowClass))
+  if(GameMemory.PermanentStorage)
   {
-    GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Horizons",
-                                        WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-                                        CW_USEDEFAULT, CW_USEDEFAULT, 1400, 700,
-                                        0, 0, Instance, 0);
+    LARGE_INTEGER PerfCountFrequencyResult;
+    QueryPerformanceFrequency(&PerfCountFrequencyResult);
+    GlobalState->PerfCountFrequency = PerfCountFrequencyResult.QuadPart;
     
-    GlobalState->ShowCursor = true;
+    // NOTE(evan): Set the Windows schedular granularity to 1ms
+    // so that Sleep() can be more granular
+    UINT DesiredSchedularMS = 1;
+    b32 SleepIsGranular = (timeBeginPeriod(DesiredSchedularMS) == TIMERR_NOERROR);
     
-    if(GlobalState->Window)
+    Win32LoadXInput();
+    
+    WNDCLASSW WindowClass = {0};
+    WindowClass.style = CS_HREDRAW|CS_VREDRAW|CS_OWNDC;
+    WindowClass.lpfnWndProc = Win32WindowProc;
+    WindowClass.hInstance = Instance;
+    WindowClass.hCursor = LoadCursorW(0, IDC_ARROW);
+    WindowClass.lpszClassName = L"WindowClass";
+    
+    s8 *GameCodeDllName = "horizons.dll";
+    s8 *GameCodeTempDllName = "horizons_temp.dll";
+    s8 *GameCodeLockName = "lock.tmp";
+    
+    if(RegisterClassW(&WindowClass))
     {
-      HDC DeviceContext = GetDC(GlobalState->Window);
+      GlobalState->Window = CreateWindowW(WindowClass.lpszClassName, L"Horizons",
+                                          WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+                                          CW_USEDEFAULT, CW_USEDEFAULT, 1400, 700,
+                                          0, 0, Instance, 0);
       
-      s32 MonitorRefreshHz = 60;
-      s32 Win32RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
-      if(Win32RefreshRate > 1)
+      GlobalState->ShowCursor = true;
+      
+      if(GlobalState->Window)
       {
-        MonitorRefreshHz = Win32RefreshRate;
-      }
-      f32 GameUpdateHz = ((f32)MonitorRefreshHz);
-      f32 TargetSecondsPerFrame = 1.0f / (f32)GameUpdateHz;
-      
-      win32_game_code Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
-      
-      if(GameMemory.PermanentStorage)
-      {
+        HDC DeviceContext = GetDC(GlobalState->Window);
+        
+        s32 MonitorRefreshHz = 60;
+        s32 Win32RefreshRate = GetDeviceCaps(DeviceContext, VREFRESH);
+        if(Win32RefreshRate > 1)
+        {
+          MonitorRefreshHz = Win32RefreshRate;
+        }
+        f32 GameUpdateHz = ((f32)MonitorRefreshHz);
+        f32 TargetSecondsPerFrame = 1.0f / (f32)GameUpdateHz;
+        
+        win32_game_code Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
+        
         GlobalState->WindowDimension = Win32GetWindowDimension(GlobalState->Window);
+        
+        GlobalState->D3D11State =
+          InitD3D11(GlobalState->Window, Win32LogMessagePlain);
         
         LARGE_INTEGER LastCounter = Win32GetWallClock();
         b32 ShouldClose = false;
@@ -485,14 +488,21 @@ WinMain(HINSTANCE Instance,
           
           {
             window_dimension NewWindowDimension = Win32GetWindowDimension(GlobalState->Window);
-            if(NewWindowDimension.Width != GlobalState->WindowDimension.Width ||
+            if(GlobalState->D3D11State.RTView == 0 ||
+               NewWindowDimension.Width != GlobalState->WindowDimension.Width ||
                NewWindowDimension.Height != GlobalState->WindowDimension.Height)
             {
+              D3D11Resize(&GlobalState->D3D11State, NewWindowDimension,
+                          Win32LogMessagePlain);
+              
               GlobalState->WindowDimension = NewWindowDimension;
             }
           }
           
           ShouldClose = Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
+          
+          D3D11Draw(&GlobalState->D3D11State, GlobalState->WindowDimension, 
+                    Win32LogMessagePlain);
           
           GlobalState->TempArena.Used = 0;
         }

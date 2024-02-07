@@ -18,13 +18,16 @@
 #define DEG_TO_RAD (Pi32 / 180)
 #define EPSILON 1.19209290E-07F
 
-#if HORIZONS_INTERNAL
+#if HORIZONS_DEBUG
 #define Assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #else
 #define Assert(Expression)
 #endif
 
-#define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0])
+#define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0]))
+
+#define STR2(X) #X
+#define STR(X) STR2(X)
 
 #include <stdint.h>
 typedef uint8_t u8;

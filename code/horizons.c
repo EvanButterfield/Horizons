@@ -20,6 +20,11 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   return(false);
 }
 
-void _DllMainCRTStartup(void)
+// TODO(evan): #if windows
+#include <windows.h>
+BOOL WINAPI _DllMainCRTStartup(HINSTANCE Instace,
+                               DWORD Reason,
+                               LPVOID Reserved)
 {
+  return(TRUE);
 }

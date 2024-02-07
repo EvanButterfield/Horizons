@@ -174,6 +174,7 @@ typedef PLATFORM_COPY_MEMORY(platform_copy_memory);
 #define PLATFORM_ZERO_MEMORY(name) void name(void *Dest, memory_index Length)
 typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
+// TODO(evan): platform_api
 typedef struct memory
 {
   memory_index PermanentStorageSize;

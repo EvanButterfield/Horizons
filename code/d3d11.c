@@ -1,5 +1,13 @@
 #include "d3d11.h"
 
+// TODO(evan): Create my own structures for this
+typedef struct vertex
+{
+  float Position[2];
+  float UV[2];
+  float Color[3];
+} vertex;
+
 // Thanks to mmozeiko for the D3D11 code
 // https://gist.github.com/mmozeiko/5e727f845db182d468a34d524508ad5f
 
@@ -85,14 +93,6 @@ InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
     IDXGIAdapter_Release(DXGIAdapter);
     IDXGIDevice_Release(DXGIDevice);
   }
-  
-  // TODO(evan): Create my own structures for this
-  typedef struct vertex
-  {
-    float Position[2];
-    float UV[2];
-    float Color[3];
-  } vertex;
   
   ID3D11Buffer *VBuffer;
   {
@@ -329,6 +329,11 @@ InitD3D11(HWND Window, platform_log_message_plain *LogMessagePlain)
     ID3D11Device_CreateDepthStencilState(Device, &Desc, &DepthState);
   }
   
+  ID3D11DeviceContext_RSSetState(Context, RasterizerState);
+  
+  ID3D11DeviceContext_OMSetBlendState(Context, BlendState, 0, ~0U);
+  ID3D11DeviceContext_OMSetDepthStencilState(Context, DepthState, 0);
+  
   d3d11_state State =
   {
     Device, Context,
@@ -390,12 +395,27 @@ D3D11Resize(d3d11_state *State, window_dimension New,
     ID3D11Device_CreateDepthStencilView(State->Device, (ID3D11Resource *)Depth,
                                         0, &State->DSView);
     ID3D11Texture2D_Release(Depth);
+    
+    ID3D11DeviceContext_IASetPrimitiveTopology(State->Context,
+                                               D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+    
+    D3D11_VIEWPORT Viewport =
+    {
+      .Width = (f32)New.Width,
+      .Height = (f32)New.Height,
+      .MaxDepth = 1
+    };
+    
+    ID3D11DeviceContext_RSSetViewports(State->Context, 1, &Viewport);
+    
+    ID3D11DeviceContext_PSSetSamplers(State->Context, 0, 1, &State->Sampler);
   }
 }
 
 internal void
 D3D11Draw(d3d11_state *State, window_dimension Dimension,
-          platform_log_message_plain *LogMessagePlain)
+          platform_log_message_plain *LogMessagePlain,
+          platform_copy_memory *CopyMemory)
 {
   if(State->RTView)
   {
@@ -405,20 +425,40 @@ D3D11Draw(d3d11_state *State, window_dimension Dimension,
                                               D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,
                                               1.f, 0);
     
-    D3D11_VIEWPORT Viewport =
     {
-      .Width = (f32)Dimension.Width,
-      .Height = (f32)Dimension.Height,
-      .MaxDepth = 1
-    };
+      f32 Aspect = (f32)Dimension.Height / (f32)Dimension.Width;
+      f32 Matrix[16] =
+      {
+        Aspect, 0, 0, 0,
+        0,      1, 0, 0,
+        0,      0, 0, 0,
+        0,      0, 0, 1
+      };
+      
+      D3D11_MAPPED_SUBRESOURCE Mapped;
+      ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
+                              0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+      CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
+      ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
+    }
     
-    ID3D11DeviceContext_RSSetViewports(State->Context, 1, &Viewport);
-    ID3D11DeviceContext_RSSetState(State->Context, State->RasterizerState);
+    ID3D11DeviceContext_IASetInputLayout(State->Context, State->Layout);
+    u32 Stride = sizeof(vertex);
+    u32 Offset = 0;
+    ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->VBuffer,
+                                           &Stride, &Offset);
     
-    ID3D11DeviceContext_OMSetBlendState(State->Context, State->BlendState, 0, ~0U);
-    ID3D11DeviceContext_OMSetDepthStencilState(State->Context, State->DepthState, 0);
+    ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1, &State->UBuffer);
+    ID3D11DeviceContext_VSSetShader(State->Context, State->VShader, 0, 0);
+    
+    ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
+                                             &State->TextureView);
+    ID3D11DeviceContext_PSSetShader(State->Context, State->PShader, 0, 0);
+    
     ID3D11DeviceContext_OMSetRenderTargets(State->Context, 1,
                                            &State->RTView, State->DSView);
+    
+    ID3D11DeviceContext_Draw(State->Context, 3, 0);
   }
   
   b32 VSync = true;

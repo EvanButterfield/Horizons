@@ -499,10 +499,11 @@ WinMain(HINSTANCE Instance,
             }
           }
           
-          ShouldClose = Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
+          Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
+          ShouldClose = GlobalState->WindowClosed;
           
           D3D11Draw(&GlobalState->D3D11State, GlobalState->WindowDimension, 
-                    Win32LogMessagePlain);
+                    Win32LogMessagePlain, Win32CopyMemory);
           
           GlobalState->TempArena.Used = 0;
         }
@@ -709,7 +710,7 @@ Win32WindowProc(HWND Window,
     
     case WM_DESTROY:
     {
-      GlobalState->WindowClosed = true;;
+      GlobalState->WindowClosed = true;
     } break;
     
     default:

@@ -60,6 +60,8 @@
 #define STR2(X) #X
 #define STR(X) STR2(X)
 
+#define NUM_ENTITIES 128
+
 #include <stdint.h>
 typedef uint8_t u8;
 typedef uint16_t u16;

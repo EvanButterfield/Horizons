@@ -114,6 +114,20 @@ InitD3D11(HWND Window, platform_api *Platform)
     ID3D11Device_CreateBuffer(Device, &Desc, &Initial, &VBuffer);
   }
   
+  ID3D11Buffer *UBuffer;
+  {
+    D3D11_BUFFER_DESC Desc =
+    {
+      // NOTE: Basic shader has 1 4x4 matrix
+      .ByteWidth = 4*4*sizeof(f32),
+      .Usage = D3D11_USAGE_DYNAMIC,
+      .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
+    };
+    
+    ID3D11Device_CreateBuffer(Device, &Desc, 0, &UBuffer);
+  }
+  
   ID3D11InputLayout *Layout;
   ID3D11VertexShader *VShader;
   ID3D11PixelShader *PShader;
@@ -212,55 +226,6 @@ InitD3D11(HWND Window, platform_api *Platform)
     ID3D10Blob_Release(VBlob);
   }
   
-  ID3D11Buffer *UBuffer;
-  {
-    D3D11_BUFFER_DESC Desc =
-    {
-      // Space for 4x4 matrix (cbuffer0 from pixel shader)
-      .ByteWidth = 4*4*sizeof(f32),
-      .Usage = D3D11_USAGE_DYNAMIC,
-      .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
-      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
-    };
-    
-    ID3D11Device_CreateBuffer(Device, &Desc, 0, &UBuffer);
-  }
-  
-  ID3D11ShaderResourceView *TextureView;
-  {
-    u32 Pixels[] =
-    {
-      0x80000000, 0xffffffff,
-      0xffffffff, 0x80000000,
-    };
-    u32 Width = 2;
-    u32 Height = 2;
-    
-    D3D11_TEXTURE2D_DESC Desc =
-    {
-      .Width = Width,
-      .Height = Height,
-      .MipLevels = 1,
-      .ArraySize = 1,
-      .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
-      .SampleDesc = {1, 0},
-      .Usage = D3D11_USAGE_IMMUTABLE,
-      .BindFlags = D3D11_BIND_SHADER_RESOURCE
-    };
-    
-    D3D11_SUBRESOURCE_DATA Data =
-    {
-      .pSysMem = Pixels,
-      .SysMemPitch = Width*sizeof(u32)
-    };
-    
-    ID3D11Texture2D *Texture;
-    ID3D11Device_CreateTexture2D(Device, &Desc, &Data, &Texture);
-    ID3D11Device_CreateShaderResourceView(Device, (ID3D11Resource *)Texture,
-                                          0, &TextureView);
-    ID3D11Texture2D_Release(Texture);
-  }
-  
   ID3D11SamplerState* Sampler;
   {
     D3D11_SAMPLER_DESC Desc =
@@ -334,17 +299,55 @@ InitD3D11(HWND Window, platform_api *Platform)
   ID3D11DeviceContext_OMSetBlendState(Context, BlendState, 0, ~0U);
   ID3D11DeviceContext_OMSetDepthStencilState(Context, DepthState, 0);
   
+  ID3D11DeviceContext_VSSetShader(Context, VShader, 0, 0);
+  ID3D11DeviceContext_PSSetShader(Context, PShader, 0, 0);
+  
   d3d11_state State =
   {
     Device, Context,
     SwapChain,
     VBuffer,
-    Layout, VShader, PShader,
-    UBuffer, TextureView,
+    Layout, VShader, PShader, UBuffer,
     Sampler, BlendState, RasterizerState, DepthState,
     0, 0
   };
   return(State);
+}
+
+internal d3d11_sprite
+D3D11CreateSprite(d3d11_state *State,
+                  u32 *Texture, u32 TextureWidth, u32 TextureHeight)
+{
+  d3d11_sprite Result;
+  
+  // Texture
+  {
+    D3D11_TEXTURE2D_DESC Desc =
+    {
+      .Width = TextureWidth,
+      .Height = TextureHeight,
+      .MipLevels = 1,
+      .ArraySize = 1,
+      .Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+      .SampleDesc = {1, 0},
+      .Usage = D3D11_USAGE_IMMUTABLE,
+      .BindFlags = D3D11_BIND_SHADER_RESOURCE
+    };
+    
+    D3D11_SUBRESOURCE_DATA Data =
+    {
+      .pSysMem = Texture,
+      .SysMemPitch = TextureWidth*sizeof(u32)
+    };
+    
+    ID3D11Texture2D *Texture2D;
+    ID3D11Device_CreateTexture2D(State->Device, &Desc, &Data, &Texture2D);
+    ID3D11Device_CreateShaderResourceView(State->Device, (ID3D11Resource *)Texture2D,
+                                          0, &Result.TextureView);
+    ID3D11Texture2D_Release(Texture2D);
+  }
+  
+  return(Result);
 }
 
 internal void
@@ -413,7 +416,7 @@ D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
 }
 
 internal void
-D3D11Draw(d3d11_state *State, window_dimension Dimension, platform_api *Platform)
+D3D11StartFrame(d3d11_state *State)
 {
   if(State->RTView)
   {
@@ -423,49 +426,56 @@ D3D11Draw(d3d11_state *State, window_dimension Dimension, platform_api *Platform
                                               D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,
                                               1.f, 0);
     
-    {
-      f32 Aspect = (f32)Dimension.Height / (f32)Dimension.Width;
-      f32 Matrix[16] =
-      {
-        Aspect, 0, 0, 0,
-        0,      1, 0, 0,
-        0,      0, 0, 0,
-        0,      0, 0, 1
-      };
-      
-      D3D11_MAPPED_SUBRESOURCE Mapped;
-      ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
-                              0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-      Platform->CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
-      ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
-    }
-    
     ID3D11DeviceContext_IASetInputLayout(State->Context, State->Layout);
     u32 Stride = sizeof(vertex);
     u32 Offset = 0;
     ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->VBuffer,
                                            &Stride, &Offset);
     
-    ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1, &State->UBuffer);
-    ID3D11DeviceContext_VSSetShader(State->Context, State->VShader, 0, 0);
-    
-    ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
-                                             &State->TextureView);
-    ID3D11DeviceContext_PSSetShader(State->Context, State->PShader, 0, 0);
-    
     ID3D11DeviceContext_OMSetRenderTargets(State->Context, 1,
                                            &State->RTView, State->DSView);
-    
-    ID3D11DeviceContext_Draw(State->Context, 3, 0);
   }
+}
+
+internal void
+D3D11DrawSprite(d3d11_state *State, d3d11_sprite *Sprite, f32 CosAngle, f32 SinAngle,
+                window_dimension Dimension, platform_api *Platform)
+{
+  f32 Aspect = (f32)Dimension.Height / (f32)Dimension.Width;
+  f32 Matrix[16] =
+  {
+    CosAngle * Aspect, -SinAngle, 0, 0,
+    SinAngle * Aspect, CosAngle,  0, 0,
+    0,                 0,         0, 0,
+    0,                 0,         0, 1
+  };
   
+  D3D11_MAPPED_SUBRESOURCE Mapped;
+  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
+                          0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+  Platform->CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
+  ID3D11DeviceContext_Unmap(State->Context,
+                            (ID3D11Resource *)State->UBuffer, 0);
+  
+  ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1,
+                                           &State->UBuffer);
+  
+  ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
+                                           &Sprite->TextureView);
+  
+  ID3D11DeviceContext_Draw(State->Context, 3, 0);
+}
+
+internal void
+D3D11EndFrame(d3d11_state *State, platform_api *Platform)
+{
   b32 VSync = true;
   HRESULT Result = IDXGISwapChain1_Present(State->SwapChain, VSync, 0);
   if(Result == DXGI_STATUS_OCCLUDED)
   {
     if(VSync)
     {
-      Sleep(10);
+      Platform->Sleep(10);
     }
   }
   else if(FAILED(Result))

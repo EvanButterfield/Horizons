@@ -11,6 +11,12 @@ typedef struct game_state
   memory_arena TempArena;
   
   b32 Initialized;
+  
+  s32 Sprite;
+  f32 CosAngle;
+  b32 CosUp;
+  f32 SinAngle;
+  b32 SinUp;
 } game_state;
 
 #endif //HORIZONS_H

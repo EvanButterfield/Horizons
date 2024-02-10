@@ -15,11 +15,11 @@ typedef struct d3d11_state
   
   IDXGISwapChain1 *SwapChain;
   ID3D11Buffer *VBuffer;
+  
   ID3D11InputLayout *Layout;
   ID3D11VertexShader *VShader;
   ID3D11PixelShader *PShader;
   ID3D11Buffer *UBuffer;
-  ID3D11ShaderResourceView *TextureView;
   
   ID3D11SamplerState* Sampler;
   ID3D11BlendState* BlendState;
@@ -29,5 +29,10 @@ typedef struct d3d11_state
   ID3D11RenderTargetView *RTView;
   ID3D11DepthStencilView *DSView;
 } d3d11_state;
+
+typedef struct d3d11_sprite
+{
+  ID3D11ShaderResourceView *TextureView;
+} d3d11_sprite;
 
 #endif //D3D11_H

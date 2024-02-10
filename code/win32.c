@@ -295,6 +295,11 @@ internal PLATFORM_CLOSE_FILE(Win32CloseFile)
   CloseHandle(Handle.Handle);
 }
 
+internal PLATFORM_SLEEP(Win32Sleep)
+{
+  Sleep(MS);
+}
+
 internal inline LARGE_INTEGER
 Win32GetWallClock(void)
 {
@@ -312,6 +317,40 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 }
 
 #include "d3d11.c"
+
+internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
+{
+  if(GlobalState->D3D11State.Device)
+  {
+    if(GlobalState->NumSprites < NUM_ENTITIES)
+    {
+      GlobalState->Sprites[GlobalState->NumSprites] =
+        D3D11CreateSprite(&GlobalState->D3D11State, Texture, TexWidth, TexHeight);
+      ++GlobalState->NumSprites;
+    }
+    else
+    {
+      Win32LogMessagePlain("Already at max sprite capacity\n",
+                           false, MESSAGE_SEVERITY_WARNING);
+      return(-1);
+    }
+  }
+  else
+  {
+    Win32LogMessagePlain("D3D11 has not been initialized yet\n",
+                         false, MESSAGE_SEVERITY_WARNING);
+    return(-1);
+  }
+  
+  return(GlobalState->NumSprites - 1);
+}
+
+internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
+{
+  d3d11_sprite *Sprite = &GlobalState->Sprites[SpriteIndex];
+  D3D11DrawSprite(&GlobalState->D3D11State, Sprite, CosAngle, SinAngle,
+                  GlobalState->WindowDimension, &GlobalState->Platform);
+}
 
 internal LRESULT CALLBACK
 Win32WindowProc(HWND Window,
@@ -349,6 +388,11 @@ WinMain(HINSTANCE Instance,
     
     Platform.CopyMemory = Win32CopyMemory;
     Platform.ZeroMemory = Win32ZeroMemory;
+    
+    Platform.Sleep = Win32Sleep;
+    
+    Platform.CreateSprite = Win32CreateSprite;
+    Platform.DrawSprite = Win32DrawSprite;
     GameMemory.Platform = Platform;
     
     memory_index PlatformPermMemorySize = Mebibytes(64);
@@ -361,6 +405,7 @@ WinMain(HINSTANCE Instance,
     GlobalState = VirtualAlloc(BaseAddress, sizeof(win32_state) + TotalGameMemorySize,
                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
     GlobalState->Platform = Platform;
+    GlobalState->NumSprites = 0;
     
     InitializeArena(&GlobalState->PermArena,
                     (u8 *)GlobalState + sizeof(win32_state),
@@ -510,11 +555,12 @@ WinMain(HINSTANCE Instance,
             }
           }
           
+          D3D11StartFrame(&GlobalState->D3D11State);
+          
           Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
           ShouldClose = GlobalState->WindowClosed;
           
-          D3D11Draw(&GlobalState->D3D11State, GlobalState->WindowDimension, 
-                    &GlobalState->Platform);
+          D3D11EndFrame(&GlobalState->D3D11State, &GlobalState->Platform);
           
           GlobalState->TempArena.Used = 0;
         }

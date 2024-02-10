@@ -294,13 +294,8 @@ InitD3D11(HWND Window, platform_api *Platform)
     ID3D11Device_CreateDepthStencilState(Device, &Desc, &DepthState);
   }
   
-  ID3D11DeviceContext_RSSetState(Context, RasterizerState);
-  
   ID3D11DeviceContext_OMSetBlendState(Context, BlendState, 0, ~0U);
-  ID3D11DeviceContext_OMSetDepthStencilState(Context, DepthState, 0);
-  
-  ID3D11DeviceContext_VSSetShader(Context, VShader, 0, 0);
-  ID3D11DeviceContext_PSSetShader(Context, PShader, 0, 0);
+  ID3D11DeviceContext_RSSetState(Context, RasterizerState);
   
   d3d11_state State =
   {
@@ -374,6 +369,10 @@ D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
                                 MESSAGE_SEVERITY_ERROR);
       Assert(0);
     }
+    
+    ID3D11DeviceContext_OMSetDepthStencilState(State->Context, State->DepthState, 0);
+    ID3D11DeviceContext_PSSetShader(State->Context, State->PShader, 0, 0);
+    ID3D11DeviceContext_VSSetShader(State->Context, State->VShader, 0, 0);
     
     ID3D11Texture2D *BackBuffer;
     IDXGISwapChain1_GetBuffer(State->SwapChain, 0, &IID_ID3D11Texture2D, &BackBuffer);

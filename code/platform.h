@@ -193,7 +193,7 @@ typedef PLATFORM_SLEEP(platform_sleep);
 #define PLATFORM_CREATE_SPRITE(name) s32 name(u32 *Texture, u32 TexWidth, u32 TexHeight)
 typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 
-#define PLATFORM_DRAW_SPRITE(name) void name(s32 SpriteIndex, f32 CosAngle, f32 SinAngle)
+#define PLATFORM_DRAW_SPRITE(name) void name(s32 SpriteIndex, f32 *Matrix)
 typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
 
 typedef struct platform_api
@@ -226,7 +226,7 @@ typedef struct memory
   platform_api Platform;
 } memory;
 
-#define GAME_UPDATE_AND_RENDER(name) b32 name(memory *Memory, game_input *Input, f32 DeltaTime)
+#define GAME_UPDATE_AND_RENDER(name) b32 name(memory *Memory, game_input *Input, window_dimension WindowDimension, f32 DeltaTime)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 internal GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
 {

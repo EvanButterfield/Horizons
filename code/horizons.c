@@ -1,5 +1,3 @@
-int _fltused;
-
 #include "horizons.h"
 
 #include "string.h"
@@ -19,66 +17,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     u32 Pixels[] = {0xffffffff};
     State->Sprite = Platform->CreateSprite(Pixels, 1, 1);
-    State->CosAngle = 1;
-    State->CosUp = false;
-    State->SinAngle = 0;
-    State->SinUp = true;
+    State->Angle = 0;
     
     State->Initialized = true;
   }
   
-  if(State->CosUp)
-  {
-    State->CosAngle += DeltaTime;
-    if(State->CosAngle >= 1)
-    {
-      State->CosAngle = 1;
-      State->CosUp = false;
-    }
-  }
-  else
-  {
-    State->CosAngle -= DeltaTime;
-    if(State->CosAngle <= -1)
-    {
-      State->CosAngle = -1;
-      State->CosUp = true;
-    }
-  }
+  State->Angle += DeltaTime;
+  mat4 Transform = Mat4CreateTransform((vec2){0, 0}, State->Angle, (vec2){100, 100}, WindowDimension);
   
-  if(State->SinUp)
-  {
-    State->SinAngle += DeltaTime;
-    if(State->SinAngle >= 1)
-    {
-      State->SinAngle = 1;
-      State->SinUp = false;
-    }
-  }
-  else
-  {
-    State->SinAngle -= DeltaTime;
-    if(State->SinAngle <= -1)
-    {
-      State->SinAngle = -1;
-      State->SinUp = true;
-    }
-  }
+  f32 Aspect = (f32)WindowDimension.Height / WindowDimension.Width;
+  mat4 Orth = Mat4Orthographic(0, (f32)WindowDimension.Width,
+                               (f32)WindowDimension.Height, 0,
+                               0, 10);
+  mat4 M = Mat4Mul(Transform, Orth);
   
-  Platform->DrawSprite(State->Sprite, 0.5f, 0.5f);
-  Platform->DrawSprite(State->Sprite, State->CosAngle, State->SinAngle);
-  Platform->DrawSprite(State->Sprite, 1, 0);
+  Platform->DrawSprite(State->Sprite, (f32 *)M.Elements);
   
   State->TempArena.Used = 0;
   return(false);
 }
-
-#if OS_WIN
-#include <windows.h>
-BOOL WINAPI _DllMainCRTStartup(HINSTANCE Instace,
-                               DWORD Reason,
-                               LPVOID Reserved)
-{
-  return(TRUE);
-}
-#endif

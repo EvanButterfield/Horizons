@@ -348,7 +348,7 @@ internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
 internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
 {
   d3d11_sprite *Sprite = &GlobalState->Sprites[SpriteIndex];
-  D3D11DrawSprite(&GlobalState->D3D11State, Sprite, CosAngle, SinAngle,
+  D3D11DrawSprite(&GlobalState->D3D11State, Sprite, Matrix,
                   GlobalState->WindowDimension, &GlobalState->Platform);
 }
 
@@ -557,7 +557,8 @@ WinMain(HINSTANCE Instance,
           
           D3D11StartFrame(&GlobalState->D3D11State);
           
-          Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput, DeltaTime);
+          Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput,
+                                   GlobalState->WindowDimension, DeltaTime);
           ShouldClose = GlobalState->WindowClosed;
           
           D3D11EndFrame(&GlobalState->D3D11State, &GlobalState->Platform);

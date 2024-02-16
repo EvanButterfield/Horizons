@@ -98,7 +98,7 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     vertex Data[] =
     {
-      { { -0.00f, +0.75f }, { 25.0f, 50.0f }, { 1, 0, 0 } },
+      { { +0.00f, +0.75f }, { 25.0f, 50.0f }, { 1, 0, 0 } },
       { { +0.75f, -0.50f }, {  0.0f,  0.0f }, { 0, 1, 0 } },
       { { -0.75f, -0.50f }, { 50.0f,  0.0f }, { 0, 0, 1 } }
     };
@@ -158,7 +158,7 @@ InitD3D11(HWND Window, platform_api *Platform)
       "                                                           \n"
       "cbuffer cbuffer0 : register(b0)                            \n" // b0 = constant buffer bound to slot 0
       "{                                                          \n"
-      "    float4x4 uTransform;                                   \n"
+      "    row_major float4x4 uTransform;                         \n"
       "}                                                          \n"
       "                                                           \n"
       "sampler sampler0 : register(s0);                           \n" // s0 = sampler bound to slot 0
@@ -168,7 +168,8 @@ InitD3D11(HWND Window, platform_api *Platform)
       "PS_INPUT vs(VS_INPUT input)                                \n"
       "{                                                          \n"
       "    PS_INPUT output;                                       \n"
-      "    output.pos = mul(uTransform, float4(input.pos, 0, 1)); \n"
+      "    output.pos = mul(float4(input.pos, 0, 1), uTransform); \n"
+      "    output.pos.z = 1;                                      \n"
       "    output.uv = input.uv;                                  \n"
       "    output.color = float4(input.color, 1);                 \n"
       "    return output;                                         \n"
@@ -437,22 +438,13 @@ D3D11StartFrame(d3d11_state *State)
 }
 
 internal void
-D3D11DrawSprite(d3d11_state *State, d3d11_sprite *Sprite, f32 CosAngle, f32 SinAngle,
+D3D11DrawSprite(d3d11_state *State, d3d11_sprite *Sprite, f32 *Matrix,
                 window_dimension Dimension, platform_api *Platform)
 {
-  f32 Aspect = (f32)Dimension.Height / (f32)Dimension.Width;
-  f32 Matrix[16] =
-  {
-    CosAngle * Aspect, -SinAngle, 0, 0,
-    SinAngle * Aspect, CosAngle,  0, 0,
-    0,                 0,         0, 0,
-    0,                 0,         0, 1
-  };
-  
   D3D11_MAPPED_SUBRESOURCE Mapped;
   ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
                           0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-  Platform->CopyMemory(Mapped.pData, Matrix, sizeof(Matrix));
+  Platform->CopyMemory(Mapped.pData, Matrix, 4*4*sizeof(f32));
   ID3D11DeviceContext_Unmap(State->Context,
                             (ID3D11Resource *)State->UBuffer, 0);
   

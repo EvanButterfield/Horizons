@@ -5,6 +5,8 @@
 
 #include "platform.h"
 
+#include "horizons_math.h"
+
 typedef struct game_state
 {
   memory_arena PermArena;
@@ -13,10 +15,7 @@ typedef struct game_state
   b32 Initialized;
   
   s32 Sprite;
-  f32 CosAngle;
-  b32 CosUp;
-  f32 SinAngle;
-  b32 SinUp;
+  f32 Angle;
 } game_state;
 
 #endif //HORIZONS_H

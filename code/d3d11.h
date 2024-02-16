@@ -15,6 +15,7 @@ typedef struct d3d11_state
   
   IDXGISwapChain1 *SwapChain;
   ID3D11Buffer *VBuffer;
+  ID3D11Buffer *IBuffer;
   
   ID3D11InputLayout *Layout;
   ID3D11VertexShader *VShader;

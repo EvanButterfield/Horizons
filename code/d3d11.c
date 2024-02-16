@@ -98,9 +98,10 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     vertex Data[] =
     {
-      { { +0.00f, +0.75f }, { 25.0f, 50.0f }, { 1, 0, 0 } },
-      { { +0.75f, -0.50f }, {  0.0f,  0.0f }, { 0, 1, 0 } },
-      { { -0.75f, -0.50f }, { 50.0f,  0.0f }, { 0, 0, 1 } }
+      { { +0.50f, -0.50f }, { 25.0f, 50.0f }, { 0, 0, 1 } },
+      { { -0.50f, -0.50f }, {  0.0f,  0.0f }, { 0, 1, 0 } },
+      { { -0.50f, +0.50f }, { 50.0f,  0.0f }, { 0, 1, 1 } },
+      { { +0.50f, +0.50f }, { 25.0f, 50.0f }, { 1, 0, 0 } }
     };
     
     D3D11_BUFFER_DESC Desc =
@@ -112,6 +113,25 @@ InitD3D11(HWND Window, platform_api *Platform)
     
     D3D11_SUBRESOURCE_DATA Initial = {.pSysMem = Data};
     ID3D11Device_CreateBuffer(Device, &Desc, &Initial, &VBuffer);
+  }
+  
+  ID3D11Buffer *IBuffer;
+  {
+    u32 Data[] =
+    {
+      0, 1, 2,
+      3, 0, 2
+    };
+    
+    D3D11_BUFFER_DESC Desc =
+    {
+      .ByteWidth = sizeof(Data),
+      .Usage = D3D11_USAGE_IMMUTABLE,
+      .BindFlags = D3D11_BIND_INDEX_BUFFER
+    };
+    
+    D3D11_SUBRESOURCE_DATA Initial = {.pSysMem = Data};
+    ID3D11Device_CreateBuffer(Device, &Desc, &Initial, &IBuffer);
   }
   
   ID3D11Buffer *UBuffer;
@@ -299,7 +319,7 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     Device, Context,
     SwapChain,
-    VBuffer,
+    VBuffer, IBuffer,
     Layout, VShader, PShader, UBuffer,
     Sampler, BlendState, RasterizerState, DepthState,
     0, 0
@@ -430,6 +450,8 @@ D3D11StartFrame(d3d11_state *State)
     u32 Offset = 0;
     ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->VBuffer,
                                            &Stride, &Offset);
+    ID3D11DeviceContext_IASetIndexBuffer(State->Context, State->IBuffer,
+                                         DXGI_FORMAT_R32_UINT, 0);
     
     ID3D11DeviceContext_OMSetRenderTargets(State->Context, 1,
                                            &State->RTView, State->DSView);
@@ -453,7 +475,7 @@ D3D11DrawSprite(d3d11_state *State, d3d11_sprite *Sprite, f32 *Matrix,
   ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
                                            &Sprite->TextureView);
   
-  ID3D11DeviceContext_Draw(State->Context, 3, 0);
+  ID3D11DeviceContext_DrawIndexed(State->Context, 6, 0, 0);
 }
 
 internal void

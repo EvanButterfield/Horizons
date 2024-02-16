@@ -295,9 +295,6 @@ InitD3D11(HWND Window, platform_api *Platform)
     ID3D11Device_CreateDepthStencilState(Device, &Desc, &DepthState);
   }
   
-  ID3D11DeviceContext_OMSetBlendState(Context, BlendState, 0, ~0U);
-  ID3D11DeviceContext_RSSetState(Context, RasterizerState);
-  
   d3d11_state State =
   {
     Device, Context,
@@ -371,6 +368,8 @@ D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
       Assert(0);
     }
     
+    ID3D11DeviceContext_RSSetState(State->Context, State->RasterizerState);
+    ID3D11DeviceContext_OMSetBlendState(State->Context, State->BlendState, 0, ~0U);
     ID3D11DeviceContext_OMSetDepthStencilState(State->Context, State->DepthState, 0);
     ID3D11DeviceContext_PSSetShader(State->Context, State->PShader, 0, 0);
     ID3D11DeviceContext_VSSetShader(State->Context, State->VShader, 0, 0);

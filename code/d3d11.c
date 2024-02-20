@@ -98,10 +98,11 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     vertex Data[] =
     {
-      { { +0.50f, -0.50f }, { 25.0f, 50.0f }, { 0, 0, 1 } },
-      { { -0.50f, -0.50f }, {  0.0f,  0.0f }, { 0, 1, 0 } },
-      { { -0.50f, +0.50f }, { 50.0f,  0.0f }, { 0, 1, 1 } },
-      { { +0.50f, +0.50f }, { 25.0f, 50.0f }, { 1, 0, 0 } }
+      // NOTE: Flip the UV because all of our images will be upside down
+      { { +0.50f, -0.50f }, { 1, 1 }, { 1, 1, 1 } }, // Bottom right
+      { { -0.50f, -0.50f }, { 0, 1 }, { 1, 1, 1 } }, // Bottom left
+      { { -0.50f, +0.50f }, { 0, 0 }, { 1, 1, 1 } }, // Top left
+      { { +0.50f, +0.50f }, { 1, 0 }, { 1, 1, 1 } }  // Top right
     };
     
     D3D11_BUFFER_DESC Desc =

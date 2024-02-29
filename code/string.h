@@ -17,15 +17,6 @@ StringLength(s8 *Str)
   return(Count);
 }
 
-internal void
-StringCopy(s8 *Str1, s8 *Str2, s32 Length)
-{
-  for(s32 CharIndex = 0; CharIndex < Length; ++CharIndex)
-  {
-    Str1[CharIndex] = Str2[CharIndex];
-  }
-}
-
 internal string8
 CreateString(s8 *Str, memory_arena *Arena, platform_api *Platform)
 {
@@ -57,50 +48,6 @@ DuplicateString(string8 String, memory_arena *Arena, platform_api *Platform)
   Result.Str = PushArray(Arena, s8, Result.Length);
   Platform->CopyMemory(Result.Str, String.Str, Result.Length*sizeof(s8));
   
-  return(Result);
-}
-
-internal string8
-IntToString(s32 Int, memory_arena *Arena, platform_api *Platform)
-{
-  // Credit to: John Boker
-  // https://stackoverflow.com/questions/3982320/convert-integer-to-string-without-access-to-libraries
-  
-  s8 Buffer[12];
-  
-  if(Int == 0)
-  {
-    Buffer[0] = '0';
-    Buffer[1] = '\0';
-  }
-  else
-  {
-    b32 Neg = Int<0;
-    
-    u32 Unsigned = Neg ? -Int : Int;
-    s32 Index = 0;
-    while(Unsigned != 0)
-    {
-      Buffer[Index++] = Unsigned % 10 + '0';
-      Unsigned = Unsigned/10;
-    }
-    
-    if(Neg)
-    {
-      Buffer[Index++] = '-';
-    }
-    
-    Buffer[Index] = '\0';
-    
-    for(s32 T = 0; T < Index/2; ++T)
-    {
-      Buffer[T] ^= Buffer[Index - T - 1];
-      Buffer[Index - T - 1] ^= Buffer[T];
-      Buffer[T] ^= Buffer[Index - T - 1];
-    }
-  }
-  
-  string8 Result = CreateString(Buffer, Arena, Platform);
   return(Result);
 }
 

@@ -29,7 +29,8 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
   s8 *StartChar;
   for(s8 *Char = Data; Char < Data + FileSize; ++Char)
   {
-    if(*Char == ' ' || *Char == '\r' || *Char == '\n')
+    if(*Char == ' ' || *Char == '\r' || *Char == '\n' ||
+       ((Char == Data + FileSize - 1) && LastWasNum))
     {
       if(LastWasNum)
       {

@@ -3,6 +3,8 @@
 #ifndef STRING_H
 #define STRING_H
 
+// TODO(evan): printf style logging
+
 internal s32
 StringLength(s8 *Str)
 {
@@ -15,11 +17,32 @@ StringLength(s8 *Str)
   return(Count);
 }
 
+internal void
+StringCopy(s8 *Str1, s8 *Str2, s32 Length)
+{
+  for(s32 CharIndex = 0; CharIndex < Length; ++CharIndex)
+  {
+    Str1[CharIndex] = Str2[CharIndex];
+  }
+}
+
 internal string8
 CreateString(s8 *Str, memory_arena *Arena, platform_api *Platform)
 {
   string8 Result;
   Result.Length = StringLength(Str);
+  Result.Str = PushArray(Arena, s8, Result.Length);
+  Platform->CopyMemory(Result.Str, Str, Result.Length*sizeof(s8));
+  
+  return(Result);
+}
+
+internal string8
+CreateStringWithLength(s8 *Str, s32 Length, memory_arena *Arena,
+                       platform_api *Platform)
+{
+  string8 Result;
+  Result.Length = Length;
   Result.Str = PushArray(Arena, s8, Result.Length);
   Platform->CopyMemory(Result.Str, Str, Result.Length*sizeof(s8));
   

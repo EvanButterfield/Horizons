@@ -8,9 +8,11 @@ int _fltused;
 #include <windows.h>
 #include <windowsx.h>
 #include <xinput.h>
+#include <shlwapi.h>
 
 #undef CopyMemory
 #undef ZeroMemory
+#undef StrToInt
 
 #include "win32.h"
 
@@ -300,6 +302,12 @@ internal PLATFORM_SLEEP(Win32Sleep)
   Sleep(MS);
 }
 
+internal PLATFORM_STR_TO_INT(Win32StrToInt)
+{
+  s32 Result = StrToIntA(Str);
+  return(Result);
+}
+
 internal inline LARGE_INTEGER
 Win32GetWallClock(void)
 {
@@ -390,6 +398,7 @@ WinMain(HINSTANCE Instance,
     Platform.ZeroMemory = Win32ZeroMemory;
     
     Platform.Sleep = Win32Sleep;
+    Platform.StrToInt = Win32StrToInt;
     
     Platform.CreateSprite = Win32CreateSprite;
     Platform.DrawSprite = Win32DrawSprite;
@@ -557,9 +566,9 @@ WinMain(HINSTANCE Instance,
           
           D3D11StartFrame(&GlobalState->D3D11State);
           
-          Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput,
-                                   GlobalState->WindowDimension, DeltaTime);
-          ShouldClose = GlobalState->WindowClosed;
+          ShouldClose = Game.GameUpdateAndRender(&GameMemory, &GlobalState->GameInput,
+                                                 GlobalState->WindowDimension, DeltaTime);
+          ShouldClose |= GlobalState->WindowClosed;
           
           D3D11EndFrame(&GlobalState->D3D11State, &GlobalState->Platform);
           

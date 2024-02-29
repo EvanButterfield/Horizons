@@ -148,8 +148,6 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[WARNING]: ", 11},
   { "[ERROR]:   ", 11} };
 
-typedef void *game_sprite;
-
 // File I/O
 #define PLATFORM_OPEN_FILE(name) platform_file_handle name(string8 FileName, file_open_flags Flags)
 typedef PLATFORM_OPEN_FILE(platform_open_file);
@@ -183,11 +181,6 @@ typedef PLATFORM_COPY_MEMORY(platform_copy_memory);
 typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
 
-// Misc
-#define PLATFORM_SLEEP(name) void name(s32 MS)
-typedef PLATFORM_SLEEP(platform_sleep);
-
-
 // Rendering
 // NOTE: Returns the sprite index
 #define PLATFORM_CREATE_SPRITE(name) s32 name(u32 *Texture, u32 TexWidth, u32 TexHeight)
@@ -195,6 +188,15 @@ typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 
 #define PLATFORM_DRAW_SPRITE(name) void name(s32 SpriteIndex, f32 *Matrix)
 typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
+
+
+// Misc
+#define PLATFORM_SLEEP(name) void name(s32 MS)
+typedef PLATFORM_SLEEP(platform_sleep);
+
+#define PLATFORM_STR_TO_INT(name) s32 name(s8 *Str)
+typedef PLATFORM_STR_TO_INT(platform_str_to_int);
+
 
 typedef struct platform_api
 {
@@ -206,13 +208,14 @@ typedef struct platform_api
   platform_log_message *LogMessage;
   platform_log_message_plain *LogMessagePlain;
   
+  platform_create_sprite *CreateSprite;
+  platform_draw_sprite *DrawSprite;
+  
   platform_copy_memory *CopyMemory;
   platform_zero_memory *ZeroMemory;
   
   platform_sleep *Sleep;
-  
-  platform_create_sprite *CreateSprite;
-  platform_draw_sprite *DrawSprite;
+  platform_str_to_int *StrToInt;
 } platform_api;
 
 typedef struct memory

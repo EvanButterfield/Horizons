@@ -259,10 +259,14 @@ Mat4Scale(mat4 M, vec3 Scale)
 }
 
 internal mat4
-Mat4CreateTransform(vec2 Pos, f32 Angle, vec2 Scale, window_dimension _WindowDimension)
+Mat4CreateTransform(b32 UseTopLeft, vec2 Pos, f32 Angle, vec2 Scale, window_dimension _WindowDimension)
 {
   vec2 WindowDimension = {(f32)_WindowDimension.Width, (f32)_WindowDimension.Height};
   Pos = Vec2Add(Pos, Vec2DivideScalar(WindowDimension, 2));
+  if(UseTopLeft)
+  {
+    Pos = Vec2Add(Pos, Vec2DivideScalar(Scale, 2));
+  }
   
   mat4 Result = Mat4Identity();
   Result = Mat4Translate(Result, (vec3){Pos.x, Pos.y, 0});

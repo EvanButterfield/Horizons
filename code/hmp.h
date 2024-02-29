@@ -18,7 +18,7 @@ typedef struct hmp_data
   u32 *Pixels;
 } hmp_data;
 
-internal hmp_data
+internal game_sprite
 LoadHMP(s8 *FileName, platform_api *Platform,
         memory_arena *Arena)
 {
@@ -32,7 +32,10 @@ LoadHMP(s8 *FileName, platform_api *Platform,
   hmp_header *Header = (hmp_header *)Data;
   u32 *Pixels = (u32 *)(Data + sizeof(hmp_header));
   
-  hmp_data Result = {Header->Width, Header->Height, Pixels};
+  game_sprite Result;
+  Result.Size = (vec2){(f32)Header->Width, (f32)Header->Height};
+  Result.Sprite = Platform->CreateSprite(Pixels, Header->Width, Header->Height);
+  
   return(Result);
 }
 

@@ -13,7 +13,7 @@ typedef struct win32_state
   
   HWND Window;
   d3d11_state D3D11State;
-  d3d11_sprite Sprites[NUM_ENTITIES];
+  d3d11_sprite Sprites[MAX_ENTITIES];
   s32 NumSprites;
   
   window_dimension WindowDimension;

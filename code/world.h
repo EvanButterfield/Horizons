@@ -29,29 +29,36 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
   s8 *StartChar;
   for(s8 *Char = Data; Char < Data + FileSize; ++Char)
   {
-    if(*Char == ' ' || *Char == '\r' || *Char == '\n' ||
-       ((Char == Data + FileSize - 1) && LastWasNum))
+    b32 IsWhitespace = *Char == ' ' || *Char == '\r' || *Char == '\n';
+    b32 IsLastChar = Char == Data + FileSize - 1;
+    if((IsWhitespace || IsLastChar) && LastWasNum)
     {
-      if(LastWasNum)
+      if(IsLastChar)
       {
-        NumLengths[NumNumbers++] = CurrentLength;
-        CurrentLength = 0;
-        LastWasNum = false;
-        
-        if(NumNumbers >= MAX_CHUNKS*2)
-        {
-          Platform->LogMessagePlain("Too many world chunks in file, using the max\n",
-                                    true, MESSAGE_SEVERITY_WARNING);
-          break;
-        }
+        ++CurrentLength;
+      }
+      
+      NumLengths[NumNumbers++] = CurrentLength;
+      CurrentLength = 0;
+      LastWasNum = false;
+      
+      if(NumNumbers >= MAX_CHUNKS*2)
+      {
+        Platform->LogMessagePlain("Too many world chunks in file, using the max\n",
+                                  true, MESSAGE_SEVERITY_WARNING);
+        break;
       }
       
       continue;
     }
-    
-    if((*Char < '0' || *Char > '9') && *Char != '-')
+    if(IsWhitespace)
     {
-      Platform->LogMessagePlain("Invalid character in world file: ", true,
+      continue;
+    }
+    
+    if((*Char < '0' || *Char > '9') && (*Char != '-' && LastWasNum == false))
+    {
+      Platform->LogMessagePlain("Invalid character in world file:\n", true,
                                 MESSAGE_SEVERITY_ERROR);
       Platform->LogMessagePlain(FileName, true, MESSAGE_SEVERITY_ERROR);
       Platform->LogMessagePlain("\n\n", true, MESSAGE_SEVERITY_ERROR);
@@ -63,13 +70,17 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
       StartChar = Char;
     }
     
+    if(Char == Data + FileSize - 1)
+    {
+    }
+    
     ++CurrentLength;
     LastWasNum = true;
   }
   
   if(NumNumbers % 2 != 0)
   {
-    Platform->LogMessagePlain("Incorrect format for world file: ", true,
+    Platform->LogMessagePlain("Incorrect format for world file:\n", true,
                               MESSAGE_SEVERITY_ERROR);
     Platform->LogMessagePlain(FileName, true, MESSAGE_SEVERITY_ERROR);
     Platform->LogMessagePlain("\n\n", true, MESSAGE_SEVERITY_ERROR);

@@ -330,7 +330,7 @@ internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
 {
   if(GlobalState->D3D11State.Device)
   {
-    if(GlobalState->NumSprites < NUM_ENTITIES)
+    if(GlobalState->NumSprites < MAX_ENTITIES)
     {
       GlobalState->Sprites[GlobalState->NumSprites] =
         D3D11CreateSprite(&GlobalState->D3D11State, Texture, TexWidth, TexHeight);

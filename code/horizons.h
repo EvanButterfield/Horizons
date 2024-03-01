@@ -21,6 +21,13 @@ typedef enum game_sprites
   SPRITES_MAX
 } game_sprites;
 
+typedef struct game_entity
+{
+  game_sprites Sprite;
+  vec2 Pos;
+  f32 Angle;
+} game_entity;
+
 typedef struct game_state
 {
   memory_arena PermArena;
@@ -28,8 +35,10 @@ typedef struct game_state
   
   b32 Initialized;
   
-  f32 Angle;
-  game_sprite Sprites[NUM_ENTITIES];
+  game_sprite Sprites[MAX_ENTITIES];
+  game_entity Entities[MAX_ENTITIES];
+  s32 EntityCount;
+  s32 StartChunkEntityIndex;
 } game_state;
 
 #endif //HORIZONS_H

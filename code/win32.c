@@ -187,12 +187,22 @@ internal PLATFORM_OPEN_FILE(Win32OpenFile)
     ShareMode |= FILE_SHARE_WRITE;
   }
   
-  HANDLE File = CreateFileA(FileName.Str, AccessFlags, ShareMode, 0,
+  string8 FullFileName;
+  if(IsResource)
+  {
+    FullFileName = CatStrings(ResourcePath, FileName, &GlobalState->TempArena, &GlobalState->Platform);
+  }
+  else
+  {
+    FullFileName = FileName;
+  }
+  
+  HANDLE File = CreateFileA(FullFileName.Str, AccessFlags, ShareMode, 0,
                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
   
   platform_file_handle Result;
   Result.Handle = File;
-  Result.FileName = DuplicateString(FileName, &GlobalState->PermArena,
+  Result.FileName = DuplicateString(FullFileName, &GlobalState->PermArena,
                                     &GlobalState->Platform);
   return(Result);
 }

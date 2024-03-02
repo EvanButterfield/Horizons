@@ -23,7 +23,7 @@ LoadHMP(s8 *FileName, platform_api *Platform,
         memory_arena *Arena)
 {
   string8 FileNameStr = CreateString(FileName, Arena, Platform);
-  platform_file_handle File = Platform->OpenFile(FileNameStr, FILE_OPEN_READ);
+  platform_file_handle File = Platform->OpenFile(FileNameStr, true, FILE_OPEN_READ);
   u32 FileSize = Platform->GetFileSize(File);
   u8 *Data = PushSize(Arena, FileSize);
   Platform->ReadEntireFile(File, FileSize, Data);

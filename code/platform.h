@@ -5,6 +5,9 @@
 
 #include "types.h"
 
+#define RESOURCE_PATH_STR "../resources/"
+global string8 ResourcePath = {RESOURCE_PATH_STR, ArrayCount(RESOURCE_PATH_STR) - 1};
+
 typedef struct game_keyboard_input
 {
   b32 W;
@@ -149,7 +152,7 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[ERROR]:   ", 11} };
 
 // File I/O
-#define PLATFORM_OPEN_FILE(name) platform_file_handle name(string8 FileName, file_open_flags Flags)
+#define PLATFORM_OPEN_FILE(name) platform_file_handle name(string8 FileName, b32 IsResource, file_open_flags Flags)
 typedef PLATFORM_OPEN_FILE(platform_open_file);
 
 #define PLATFORM_GET_FILE_SIZE(name) u32 name(platform_file_handle Handle)

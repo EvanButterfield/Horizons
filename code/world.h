@@ -16,7 +16,7 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
           memory_arena *TempArena, memory_arena *PermArena)
 {
   string8 FileNameStr = CreateString(FileName, TempArena, Platform);
-  platform_file_handle File = Platform->OpenFile(FileNameStr, FILE_OPEN_READ);
+  platform_file_handle File = Platform->OpenFile(FileNameStr, true, FILE_OPEN_READ);
   u32 FileSize = Platform->GetFileSize(File);
   s8 *Data = (s8 *)PushSize(TempArena, FileSize);
   Platform->ReadEntireFile(File, FileSize, Data);

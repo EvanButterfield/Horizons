@@ -44,7 +44,7 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
       
       if(NumNumbers >= MAX_CHUNKS*2)
       {
-        Platform->LogMessagePlain("Too many world chunks in file, using the max\n",
+        Platform->LogMessagePlain("Too many world chunks, using the max\n",
                                   true, MESSAGE_SEVERITY_WARNING);
         break;
       }
@@ -58,10 +58,8 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
     
     if((*Char < '0' || *Char > '9') && (*Char != '-' && LastWasNum == false))
     {
-      Platform->LogMessagePlain("Invalid character in world file:\n", true,
+      Platform->LogMessagePlain("Invalid character in world file\n", true,
                                 MESSAGE_SEVERITY_ERROR);
-      Platform->LogMessagePlain(FileName, true, MESSAGE_SEVERITY_ERROR);
-      Platform->LogMessagePlain("\n\n", true, MESSAGE_SEVERITY_ERROR);
       return(0);
     }
     
@@ -80,10 +78,8 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
   
   if(NumNumbers % 2 != 0)
   {
-    Platform->LogMessagePlain("Incorrect format for world file:\n", true,
+    Platform->LogMessagePlain("Incorrect format for world file\n", true,
                               MESSAGE_SEVERITY_ERROR);
-    Platform->LogMessagePlain(FileName, true, MESSAGE_SEVERITY_ERROR);
-    Platform->LogMessagePlain("\n\n", true, MESSAGE_SEVERITY_ERROR);
     return(0);
   }
   
@@ -127,8 +123,8 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
       s8 Digit = SpriteIndexString.Str[CharIndex];
       if(CharIndex == 0 && Digit == '-')
       {
-        Chunk->SpriteIndex *= -1;
-        break;
+        Platform->LogMessagePlain("No negative sprite indexes allowed\n", true, MESSAGE_SEVERITY_ERROR);
+        return(0);
       }
       
       s32 Digit32 = Digit - '0'; // Offset the ascii code
@@ -142,7 +138,7 @@ LoadWorld(s8 *FileName, world_chunk **WorldChunks, platform_api *Platform,
       s8 Digit = YString.Str[CharIndex];
       if(CharIndex == 0 && Digit == '-')
       {
-        Chunk->SpriteIndex *= -1;
+        Chunk->Y *= -1;
         break;
       }
       

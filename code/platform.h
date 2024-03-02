@@ -185,7 +185,7 @@ typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
 
 // Rendering
-// NOTE: Returns the sprite index
+// Returns the sprite index
 #define PLATFORM_CREATE_SPRITE(name) s32 name(u32 *Texture, u32 TexWidth, u32 TexHeight)
 typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 

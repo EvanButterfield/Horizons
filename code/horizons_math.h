@@ -54,6 +54,14 @@ typedef union mat4
 
 #include <math.h>
 
+// NOTE(evan): This exists because I don't want to
+//             cast to f32 everytime I use fabs
+internal inline f32 Abs(f32 Val)
+{
+  f32 Result = (f32)fabs(Val);
+  return(Result);
+}
+
 internal inline vec2
 Vec2Add(vec2 A, vec2 B)
 {

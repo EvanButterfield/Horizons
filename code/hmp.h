@@ -34,6 +34,7 @@ LoadHMP(s8 *FileName, platform_api *Platform,
   
   game_sprite Result;
   Result.Size = (vec2){(f32)Header->Width, (f32)Header->Height};
+  Result.HalfSize = Vec2DivideScalar(Result.Size, 2);
   Result.Sprite = Platform->CreateSprite(Pixels, Header->Width, Header->Height);
   
   return(Result);

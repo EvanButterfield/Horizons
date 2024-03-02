@@ -500,6 +500,7 @@ WinMain(HINSTANCE Instance,
             LastCounter = EndCounter;
           }
           
+#if HORIZONS_INTERNAL
           {
             FILETIME NewDllWriteTime = Win32GetLastWriteTime(GameCodeDllName);
             if(CompareFileTime(&Game.LastWriteTime, &NewDllWriteTime))
@@ -508,8 +509,8 @@ WinMain(HINSTANCE Instance,
               Game = Win32LoadGameCode(GameCodeDllName, GameCodeTempDllName, GameCodeLockName);
             }
           }
+#endif
           
-          GlobalState->GameInput.Keyboard.Backspace = false;
           {
             MSG Message;
             while(PeekMessageA(&Message, 0, 0, 0, PM_REMOVE))

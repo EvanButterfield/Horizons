@@ -56,7 +56,7 @@ InitD3D11(HWND Window, platform_api *Platform)
                                       TRUE);
     IDXGIInfoQueue_Release(DXGIInfo);
     
-    // NOTE: No need to check results after this because it will automatically
+    // NOTE(evan): No need to check results after this because it will automatically
     //       break on errors anyways
   }
 #endif
@@ -98,7 +98,7 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     vertex Data[] =
     {
-      // NOTE: Flip the UV because all of our images will be upside down
+      // NOTE(evan): Flip the UV because all of our images will be upside down
       { { +0.50f, -0.50f }, { 1, 1 }, { 1, 1, 1 } }, // Bottom right
       { { -0.50f, -0.50f }, { 0, 1 }, { 1, 1, 1 } }, // Bottom left
       { { -0.50f, +0.50f }, { 0, 0 }, { 1, 1, 1 } }, // Top left
@@ -139,7 +139,7 @@ InitD3D11(HWND Window, platform_api *Platform)
   {
     D3D11_BUFFER_DESC Desc =
     {
-      // NOTE: Basic shader has 1 4x4 matrix
+      // NOTE(evan): Basic shader has 1 4x4 matrix
       .ByteWidth = 4*4*sizeof(f32),
       .Usage = D3D11_USAGE_DYNAMIC,
       .BindFlags = D3D11_BIND_CONSTANT_BUFFER,

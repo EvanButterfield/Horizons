@@ -12,7 +12,7 @@ typedef struct vertex
 // https://gist.github.com/mmozeiko/5e727f845db182d468a34d524508ad5f
 
 internal d3d11_state
-InitD3D11(HWND Window, platform_api *Platform)
+InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
 {
   HRESULT Result;
   
@@ -160,92 +160,24 @@ InitD3D11(HWND Window, platform_api *Platform)
       { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
     };
     
-    const char HLSL[] =
-      "#line " STR(__LINE__) "                                  \n\n" // actual line number in this file for nicer error messages
-      "                                                           \n"
-      "struct VS_INPUT                                            \n"
-      "{                                                          \n"
-      "     float2 pos   : POSITION;                              \n" // these names must match D3D11_INPUT_ELEMENT_DESC array
-      "     float2 uv    : TEXCOORD;                              \n"
-      "     float3 color : COLOR;                                 \n"
-      "};                                                         \n"
-      "                                                           \n"
-      "struct PS_INPUT                                            \n"
-      "{                                                          \n"
-      "  float4 pos   : SV_POSITION;                              \n" // these names do not matter, except SV_... ones
-      "  float2 uv    : TEXCOORD;                                 \n"
-      "  float4 color : COLOR;                                    \n"
-      "};                                                         \n"
-      "                                                           \n"
-      "cbuffer cbuffer0 : register(b0)                            \n" // b0 = constant buffer bound to slot 0
-      "{                                                          \n"
-      "    row_major float4x4 uTransform;                         \n"
-      "}                                                          \n"
-      "                                                           \n"
-      "sampler sampler0 : register(s0);                           \n" // s0 = sampler bound to slot 0
-      "                                                           \n"
-      "Texture2D<float4> texture0 : register(t0);                 \n" // t0 = shader resource bound to slot 0
-      "                                                           \n"
-      "PS_INPUT vs(VS_INPUT input)                                \n"
-      "{                                                          \n"
-      "    PS_INPUT output;                                       \n"
-      "    output.pos = mul(float4(input.pos, 0, 1), uTransform); \n"
-      "    output.pos.z = 1;                                      \n"
-      "    output.uv = input.uv;                                  \n"
-      "    output.color = float4(input.color, 1);                 \n"
-      "    return output;                                         \n"
-      "}                                                          \n"
-      "                                                           \n"
-      "float4 ps(PS_INPUT input) : SV_TARGET                      \n"
-      "{                                                          \n"
-      "    float4 tex = texture0.Sample(sampler0, input.uv);      \n"
-      "    return input.color * tex;                              \n"
-      "}                                                          \n";
+    string8 VSString = CreateString("shader_vs.fxc", TempArena, Platform);
+    platform_file_handle VSHandle = Platform->OpenFile(VSString, false, FILE_OPEN_READ);
+    u32 VSSize = Platform->GetFileSize(VSHandle);
+    void *VSData = PushSize(TempArena, VSSize);
+    Platform->ReadEntireFile(VSHandle, VSSize, VSData);
+    Platform->CloseFile(VSHandle);
     
-    UINT Flags = D3DCOMPILE_PACK_MATRIX_COLUMN_MAJOR|D3DCOMPILE_ENABLE_STRICTNESS|D3DCOMPILE_WARNINGS_ARE_ERRORS;
+    string8 PSString = CreateString("shader_ps.fxc", TempArena, Platform);
+    platform_file_handle PSHandle = Platform->OpenFile(PSString, false, FILE_OPEN_READ);
+    u32 PSSize = Platform->GetFileSize(PSHandle);
+    void *PSData = PushSize(TempArena, PSSize);
+    Platform->ReadEntireFile(PSHandle, PSSize, PSData);
+    Platform->CloseFile(PSHandle);
     
-#if HORIZONS_DEBUG
-    Flags |= D3DCOMPILE_DEBUG|D3DCOMPILE_SKIP_OPTIMIZATION;
-#else
-    Flags |= D3DCOMPILE_OPTIMIZATION_LEVEL3;
-#endif
-    
-    ID3DBlob *Error;
-    
-    ID3DBlob *VBlob;
-    Result = D3DCompile(HLSL, sizeof(HLSL), 0, 0, 0, "vs", "vs_5_0",
-                        Flags, 0, &VBlob, &Error);
-    if(FAILED(Result))
-    {
-      s8 *Message = ID3D10Blob_GetBufferPointer(Error);
-      Platform->LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
-      Platform->LogMessagePlain("Failed to compile vertex shader", false,
-                                MESSAGE_SEVERITY_ERROR);
-      Assert(0);
-    }
-    
-    ID3DBlob *PBlob;
-    Result = D3DCompile(HLSL, sizeof(HLSL), 0, 0, 0, "ps", "ps_5_0",
-                        Flags, 0, &PBlob, &Error);
-    if(FAILED(Result))
-    {
-      s8 *Message = ID3D10Blob_GetBufferPointer(Error);
-      Platform->LogMessagePlain(Message, false, MESSAGE_SEVERITY_ERROR);
-      Platform->LogMessagePlain("Failed to compile pixel shader", false,
-                                MESSAGE_SEVERITY_ERROR);
-      Assert(0);
-    }
-    
-    ID3D11Device_CreateVertexShader(Device, ID3D10Blob_GetBufferPointer(VBlob),
-                                    ID3D10Blob_GetBufferSize(VBlob), 0, &VShader);
-    ID3D11Device_CreatePixelShader(Device, ID3D10Blob_GetBufferPointer(PBlob),
-                                   ID3D10Blob_GetBufferSize(PBlob), 0, &PShader);
+    ID3D11Device_CreateVertexShader(Device, VSData, VSSize, 0, &VShader);
+    ID3D11Device_CreatePixelShader(Device, PSData, PSSize, 0, &PShader);
     ID3D11Device_CreateInputLayout(Device, Desc, ArrayCount(Desc),
-                                   ID3D10Blob_GetBufferPointer(VBlob),
-                                   ID3D10Blob_GetBufferSize(VBlob), &Layout);
-    
-    ID3D10Blob_Release(PBlob);
-    ID3D10Blob_Release(VBlob);
+                                   VSData, VSSize, &Layout);
   }
   
   ID3D11SamplerState* Sampler;

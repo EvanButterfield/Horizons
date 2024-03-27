@@ -487,7 +487,8 @@ WinMain(HINSTANCE Instance,
         GlobalState->WindowDimension = Win32GetWindowDimension(GlobalState->Window);
         
         GlobalState->D3D11State =
-          InitD3D11(GlobalState->Window, &GlobalState->Platform);
+          InitD3D11(GlobalState->Window, &GlobalState->Platform,
+                    &GlobalState->TempArena);
         
         LARGE_INTEGER LastCounter = Win32GetWallClock();
         b32 ShouldClose = false;

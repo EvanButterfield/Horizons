@@ -73,6 +73,16 @@ Vec2Add(vec2 A, vec2 B)
 }
 
 internal inline vec2
+Vec2Subtract(vec2 A, vec2 B)
+{
+  vec2 Result;
+  Result.x = A.x - B.x;
+  Result.y = A.y - B.y;
+  
+  return(Result);
+}
+
+internal inline vec2
 Vec2DivideScalar(vec2 A, f32 B)
 {
   vec2 Result;

@@ -57,6 +57,14 @@ typedef struct game_state
   game_entity Entities[MAX_ENTITIES];
   s32 EntityCount;
   s32 StartChunkEntityIndex;
+  
+  b32 OnGround;
+  f32 Speed;
+  f32 FrictionCoefficient;
+  f32 BounceDamping;
+  
+  vec2 CameraPos;
+  f32 CameraWindowSize;
 } game_state;
 
 #endif //HORIZONS_H

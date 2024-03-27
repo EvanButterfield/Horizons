@@ -43,6 +43,10 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
       return(true);
     }
     
+    State->OnGround = false;
+    State->Speed = 8.0f;
+    State->FrictionCoefficient = 0.05f;
+    State->BounceDamping = 0.5f;
     {
       game_entity Entity =
       {
@@ -53,6 +57,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
       };
       SpriteEntity = CreateEntity(Entity);
     }
+    State->CameraPos = State->Entities[SpriteEntity].Pos;
+    State->CameraWindowSize = 50;
     
     {
       State->StartChunkEntityIndex = State->EntityCount;
@@ -79,18 +85,6 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->Initialized = true;
   }
   
-  // State->Entities[SpriteEntity].Angle += DeltaTime;
-  
-  f32 Aspect = (f32)WindowDimension.Height / WindowDimension.Width;
-  mat4 Orth = Mat4Orthographic(0, (f32)WindowDimension.Width,
-                               (f32)WindowDimension.Height, 0,
-                               0, 10);
-  
-  /*{
-    game_entity *Entity = &State->Entities[SpriteEntity];
-    Entity->Pos.x = (f32)Input->Mouse.X - WindowDimension.Width/2;
-    Entity->Pos.y = (f32)Input->Mouse.Y - WindowDimension.Height/2;
-  }*/
   {
     f32 Movement = 0;
     if(Input->Keyboard.Right)
@@ -102,8 +96,35 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
       Movement -= 1;
     }
     
-    State->Entities[SpriteEntity].Velocity.x += Movement*DeltaTime;
+    f32 Speed;
+    if(State->OnGround)
+    {
+      Speed = State->Speed;
+    }
+    else
+    {
+      Speed = State->Speed/2;
+    }
+    
+    State->Entities[SpriteEntity].Velocity.x += Movement*DeltaTime*Speed;
   }
+  
+  {
+    vec2 Pos = State->Entities[SpriteEntity].Pos;
+    if(Pos.x >= State->CameraPos.x + State->CameraWindowSize)
+    {
+      State->CameraPos.x = Pos.x + State->CameraWindowSize;
+    }
+    else if(Pos.x <= State->CameraPos.x - State->CameraWindowSize)
+    {
+      State->CameraPos.x = Pos.x - State->CameraWindowSize;
+    }
+  }
+  
+  f32 Aspect = (f32)WindowDimension.Height / WindowDimension.Width;
+  mat4 Orth = Mat4Orthographic(0, (f32)WindowDimension.Width,
+                               (f32)WindowDimension.Height, 0,
+                               0, 10);
   
   for(s32 EntityIndex = 0; EntityIndex < State->EntityCount; ++EntityIndex)
   {
@@ -114,7 +135,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
     
     game_sprite Sprite = State->Sprites[Entity->Sprite];
-    vec2 Pos = Entity->Pos;
+    vec2 Pos = Vec2Subtract(Entity->Pos, State->CameraPos);
     
     mat4 Transform = Mat4CreateTransform(false, Pos, Entity->Angle, Sprite.Size, WindowDimension);
     mat4 M = Mat4Mul(Transform, Orth);
@@ -136,6 +157,8 @@ UpdatePhysics(s32 EntityIndex, f32 DeltaTime)
     f32 DeltaVY = GAcceleration*DeltaTime;
     Entity->Velocity.y += DeltaVY;
   }
+  
+  b32 OnGround = false;
   
   Entity->Pos = Vec2Add(Entity->Pos, Entity->Velocity);
   
@@ -203,12 +226,11 @@ UpdatePhysics(s32 EntityIndex, f32 DeltaTime)
     else
     {
       Direction = DIRECTION_NONE;
-      Platform->LogMessagePlain("\n", true, MESSAGE_SEVERITY_DEBUG);
     }
     
     if(Direction & (DIRECTION_RIGHT|DIRECTION_LEFT))
     {
-      Entity->Velocity.x *= -0.5f;
+      Entity->Velocity.x *= -State->BounceDamping;
       
       if(Direction == DIRECTION_RIGHT)
       {
@@ -221,10 +243,7 @@ UpdatePhysics(s32 EntityIndex, f32 DeltaTime)
     }
     else if(Direction & (DIRECTION_DOWN|DIRECTION_UP))
     {
-      Entity->Velocity.y *= -0.5f;
-      
-      // NOTE(evan): Friction
-      Entity->Velocity.x -= Entity->Velocity.x*0.002f;
+      OnGround = true;
       
       if(Direction == DIRECTION_DOWN)
       {
@@ -235,5 +254,15 @@ UpdatePhysics(s32 EntityIndex, f32 DeltaTime)
         Entity->Pos.y = Top2 - Sprite.HalfSize.x;
       }
     }
+  }
+  
+  State->OnGround = OnGround;
+  if(OnGround)
+  {
+    // NOTE(evan): Bounce
+    Entity->Velocity.y *= -State->BounceDamping;
+    
+    // NOTE(evan): Friction
+    Entity->Velocity.x -= Entity->Velocity.x*State->FrictionCoefficient;
   }
 }

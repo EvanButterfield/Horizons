@@ -11,6 +11,57 @@ typedef struct vertex
 // Thanks to mmozeiko for the D3D11 code
 // https://gist.github.com/mmozeiko/5e727f845db182d468a34d524508ad5f
 
+internal d3d11_shader
+D3D11CreateShader_(ID3D11Device *Device, s8 *Name,
+                   memory_arena *TempArena, platform_api *Platform)
+{
+  string8 NameString = CreateString(Name, TempArena, Platform);
+  string8 VSString = CatStringsPlain(NameString, "_vs.fxc", TempArena, Platform);
+  string8 PSString = CatStringsPlain(NameString, "_ps.fxc", TempArena, Platform);
+  
+  platform_file_handle VSHandle = Platform->OpenFile(VSString, false, FILE_OPEN_READ);
+  u32 VSSize = Platform->GetFileSize(VSHandle);
+  void *VSData = PushSize(TempArena, VSSize);
+  Platform->ReadEntireFile(VSHandle, VSSize, VSData);
+  Platform->CloseFile(VSHandle);
+  
+  platform_file_handle PSHandle = Platform->OpenFile(PSString, false, FILE_OPEN_READ);
+  u32 PSSize = Platform->GetFileSize(PSHandle);
+  void *PSData = PushSize(TempArena, PSSize);
+  Platform->ReadEntireFile(PSHandle, PSSize, PSData);
+  Platform->CloseFile(PSHandle);
+  
+  ID3D11VertexShader *VShader;
+  ID3D11PixelShader *PShader;
+  ID3D11Device_CreateVertexShader(Device, VSData, VSSize, 0, &VShader);
+  ID3D11Device_CreatePixelShader(Device, PSData, PSSize, 0, &PShader);
+  
+  D3D11_INPUT_ELEMENT_DESC Desc[] =
+  {
+    { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
+  };
+  
+  ID3D11InputLayout *Layout;
+  ID3D11Device_CreateInputLayout(Device, Desc, ArrayCount(Desc),
+                                 VSData, VSSize, &Layout);
+  
+  d3d11_shader Result;
+  Result.Layout = Layout;
+  Result.VShader = VShader;
+  Result.PShader = PShader;
+  return(Result);
+}
+
+internal d3d11_shader
+D3D11CreateShader(d3d11_state *State, s8 *Name,
+                  memory_arena *TempArena, platform_api *Platform)
+{
+  d3d11_shader Shader = D3D11CreateShader_(State->Device, Name, TempArena, Platform);
+  return(Shader);
+}
+
 internal d3d11_state
 InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
 {
@@ -149,36 +200,7 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
     ID3D11Device_CreateBuffer(Device, &Desc, 0, &UBuffer);
   }
   
-  ID3D11InputLayout *Layout;
-  ID3D11VertexShader *VShader;
-  ID3D11PixelShader *PShader;
-  {
-    D3D11_INPUT_ELEMENT_DESC Desc[] =
-    {
-      { "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-      { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
-      { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
-    };
-    
-    string8 VSString = CreateString("shader_vs.fxc", TempArena, Platform);
-    platform_file_handle VSHandle = Platform->OpenFile(VSString, false, FILE_OPEN_READ);
-    u32 VSSize = Platform->GetFileSize(VSHandle);
-    void *VSData = PushSize(TempArena, VSSize);
-    Platform->ReadEntireFile(VSHandle, VSSize, VSData);
-    Platform->CloseFile(VSHandle);
-    
-    string8 PSString = CreateString("shader_ps.fxc", TempArena, Platform);
-    platform_file_handle PSHandle = Platform->OpenFile(PSString, false, FILE_OPEN_READ);
-    u32 PSSize = Platform->GetFileSize(PSHandle);
-    void *PSData = PushSize(TempArena, PSSize);
-    Platform->ReadEntireFile(PSHandle, PSSize, PSData);
-    Platform->CloseFile(PSHandle);
-    
-    ID3D11Device_CreateVertexShader(Device, VSData, VSSize, 0, &VShader);
-    ID3D11Device_CreatePixelShader(Device, PSData, PSSize, 0, &PShader);
-    ID3D11Device_CreateInputLayout(Device, Desc, ArrayCount(Desc),
-                                   VSData, VSSize, &Layout);
-  }
+  d3d11_shader Shader = D3D11CreateShader_(Device, "shader", TempArena, Platform);
   
   ID3D11SamplerState* Sampler;
   {
@@ -250,12 +272,18 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   
   d3d11_state State =
   {
-    Device, Context,
-    SwapChain,
-    VBuffer, IBuffer,
-    Layout, VShader, PShader, UBuffer,
-    Sampler, BlendState, RasterizerState, DepthState,
-    0, 0
+    .Device = Device,
+    .Context = Context,
+    .SwapChain = SwapChain,
+    .VBuffer = VBuffer,
+    .IBuffer = IBuffer,
+    .DefaultShader = Shader,
+    .CurrentShader = Shader,
+    .UBuffer = UBuffer,
+    .Sampler = Sampler,
+    .BlendState = BlendState,
+    .RasterizerState = RasterizerState,
+    .DepthState = DepthState
   };
   return(State);
 }
@@ -297,6 +325,14 @@ D3D11CreateSprite(d3d11_state *State,
 }
 
 internal void
+D3D11SetShader(d3d11_state *State, d3d11_shader Shader)
+{
+  State->CurrentShader = Shader;
+  ID3D11DeviceContext_PSSetShader(State->Context, Shader.PShader, 0, 0);
+  ID3D11DeviceContext_VSSetShader(State->Context, Shader.VShader, 0, 0);
+}
+
+internal void
 D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
 {
   if(State->RTView)
@@ -324,8 +360,8 @@ D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
     ID3D11DeviceContext_RSSetState(State->Context, State->RasterizerState);
     ID3D11DeviceContext_OMSetBlendState(State->Context, State->BlendState, 0, ~0U);
     ID3D11DeviceContext_OMSetDepthStencilState(State->Context, State->DepthState, 0);
-    ID3D11DeviceContext_PSSetShader(State->Context, State->PShader, 0, 0);
-    ID3D11DeviceContext_VSSetShader(State->Context, State->VShader, 0, 0);
+    ID3D11DeviceContext_PSSetShader(State->Context, State->CurrentShader.PShader, 0, 0);
+    ID3D11DeviceContext_VSSetShader(State->Context, State->CurrentShader.VShader, 0, 0);
     
     ID3D11Texture2D *BackBuffer;
     IDXGISwapChain1_GetBuffer(State->SwapChain, 0, &IID_ID3D11Texture2D, &BackBuffer);
@@ -378,7 +414,7 @@ D3D11StartFrame(d3d11_state *State)
                                               D3D11_CLEAR_DEPTH|D3D11_CLEAR_STENCIL,
                                               1.f, 0);
     
-    ID3D11DeviceContext_IASetInputLayout(State->Context, State->Layout);
+    ID3D11DeviceContext_IASetInputLayout(State->Context, State->CurrentShader.Layout);
     u32 Stride = sizeof(vertex);
     u32 Offset = 0;
     ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->VBuffer,

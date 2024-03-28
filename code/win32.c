@@ -197,8 +197,13 @@ internal PLATFORM_OPEN_FILE(Win32OpenFile)
     FullFileName = FileName;
   }
   
-  HANDLE File = CreateFileA(FullFileName.Str, AccessFlags, ShareMode, 0,
+  s8 *FullFileNameStr =
+    PushArray(&GlobalState->TempArena, s8, FullFileName.Length + 1);
+  Win32CopyMemory(FullFileNameStr, FullFileName.Str, FullFileName.Length);
+  FullFileNameStr[FullFileName.Length] = 0;
+  HANDLE File = CreateFileA(FullFileNameStr, AccessFlags, ShareMode, 0,
                             OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, 0);
+  DWORD Error = GetLastError();
   
   platform_file_handle Result;
   Result.Handle = File;
@@ -363,6 +368,27 @@ internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
   return(GlobalState->NumSprites - 1);
 }
 
+internal PLATFORM_CREATE_SHADER(Win32CreateShader)
+{
+  d3d11_shader Shader = D3D11CreateShader(&GlobalState->D3D11State, Name,
+                                          &GlobalState->TempArena,
+                                          &GlobalState->Platform);
+  d3d11_shader *ShaderResult = PushStruct(&GlobalState->PermArena, d3d11_shader);
+  *ShaderResult = Shader;
+  return(ShaderResult);
+}
+
+internal PLATFORM_GET_DEFAULT_SHADER(Win32GetDefaultShader)
+{
+  platform_shader Shader = &GlobalState->D3D11State.DefaultShader;
+  return(Shader);
+}
+
+internal PLATFORM_SET_SHADER(Win32SetShader)
+{
+  D3D11SetShader(&GlobalState->D3D11State, *((d3d11_shader *)Shader));
+}
+
 internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
 {
   d3d11_sprite *Sprite = &GlobalState->Sprites[SpriteIndex];
@@ -411,6 +437,9 @@ WinMain(HINSTANCE Instance,
     Platform.StrToInt = Win32StrToInt;
     
     Platform.CreateSprite = Win32CreateSprite;
+    Platform.CreateShader = Win32CreateShader;
+    Platform.GetDefaultShader = Win32GetDefaultShader;
+    Platform.SetShader = Win32SetShader;
     Platform.DrawSprite = Win32DrawSprite;
     GameMemory.Platform = Platform;
     

@@ -12,12 +12,4 @@ cl %CompilerFlags% w:\new-horizons\code\horizons.c -LD /link %LinkerFlags% -Expo
 del lock.tmp
 echo "Done compiling New Horizons game code"
 
-echo -
-
-echo "Compiling New Horizons shaders"
-rem /Qstrip_reflect /Qstrip_debug
-fxc /T vs_5_0 /E VS /Fo shader_vs.fxc /Ges /nologo /Od /WX /Zi /Zpr /Qstrip_priv  w:\new-horizons\code\shaders.hlsl
-fxc /T ps_5_0 /E PS /Fo shader_ps.fxc /Ges /nologo /Od /WX /Zi /Zpr /Qstrip_priv w:\new-horizons\code\shaders.hlsl
-echo "Done compiling New Horizons shaders"
-
 popd

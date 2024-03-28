@@ -58,6 +58,9 @@ typedef struct game_state
   s32 EntityCount;
   s32 StartChunkEntityIndex;
   
+  platform_shader Shader;
+  platform_shader FancyShader;
+  
   b32 OnGround;
   f32 Speed;
   f32 FrictionCoefficient;

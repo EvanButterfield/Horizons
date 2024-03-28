@@ -81,6 +81,9 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
       }
     }
     
+    State->Shader = Platform->GetDefaultShader();
+    State->FancyShader = Platform->CreateShader("fancy_shader");
+    
     State->TempArena.Used = 0;
     State->Initialized = true;
   }
@@ -136,6 +139,15 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     game_sprite Sprite = State->Sprites[Entity->Sprite];
     vec2 Pos = Vec2Subtract(Entity->Pos, State->CameraPos);
+    
+    if(EntityIndex % 2 == 0)
+    {
+      Platform->SetShader(State->FancyShader);
+    }
+    else
+    {
+      Platform->SetShader(State->Shader);
+    }
     
     mat4 Transform = Mat4CreateTransform(false, Pos, Entity->Angle, Sprite.Size, WindowDimension);
     mat4 M = Mat4Mul(Transform, Orth);

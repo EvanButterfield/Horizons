@@ -5,8 +5,19 @@
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
-#include <d3dcompiler.h>
 #include <dxgidebug.h>
+
+typedef struct d3d11_shader
+{
+  ID3D11InputLayout *Layout;
+  ID3D11VertexShader *VShader;
+  ID3D11PixelShader *PShader;
+} d3d11_shader;
+
+typedef struct d3d11_sprite
+{
+  ID3D11ShaderResourceView *TextureView;
+} d3d11_sprite;
 
 typedef struct d3d11_state
 {
@@ -17,10 +28,9 @@ typedef struct d3d11_state
   ID3D11Buffer *VBuffer;
   ID3D11Buffer *IBuffer;
   
-  ID3D11InputLayout *Layout;
-  ID3D11VertexShader *VShader;
-  ID3D11PixelShader *PShader;
   ID3D11Buffer *UBuffer;
+  d3d11_shader DefaultShader;
+  d3d11_shader CurrentShader;
   
   ID3D11SamplerState* Sampler;
   ID3D11BlendState* BlendState;
@@ -30,10 +40,5 @@ typedef struct d3d11_state
   ID3D11RenderTargetView *RTView;
   ID3D11DepthStencilView *DSView;
 } d3d11_state;
-
-typedef struct d3d11_sprite
-{
-  ID3D11ShaderResourceView *TextureView;
-} d3d11_sprite;
 
 #endif //D3D11_H

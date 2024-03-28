@@ -15,13 +15,6 @@ echo "Done compiling New Horizons game code"
 
 echo -
 
-echo "Compiling New Horizons shaders"
-fxc /T vs_5_0 /E VS /Fo shader_vs.fxc /Ges /nologo /Od /WX /Zi /Zpr /Qstrip_reflect /Qstrip_debug /Qstrip_priv w:\new-horizons\code\shaders.hlsl
-fxc /T ps_5_0 /E PS /Fo shader_ps.fxc /Ges /nologo /Od /WX /Zi /Zpr /Qstrip_reflect /Qstrip_debug /Qstrip_priv w:\new-horizons\code\shaders.hlsl
-echo "Done compiling New Horizons shaders"
-
-echo -
-
 echo "Compiling New Horizons platform code"
 cl -Gs9999999 %CompilerFlags% w:\new-horizons\code\win32.c /link -subsystem:windows -nodefaultlib %CommonLinkerFlags% %LinkerFlags%
 echo "Done compiling New Horizons platform code"

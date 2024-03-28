@@ -151,6 +151,8 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[WARNING]: ", 11},
   { "[ERROR]:   ", 11} };
 
+typedef void *platform_shader;
+
 // File I/O
 #define PLATFORM_OPEN_FILE(name) platform_file_handle name(string8 FileName, b32 IsResource, file_open_flags Flags)
 typedef PLATFORM_OPEN_FILE(platform_open_file);
@@ -189,6 +191,15 @@ typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 #define PLATFORM_CREATE_SPRITE(name) s32 name(u32 *Texture, u32 TexWidth, u32 TexHeight)
 typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 
+#define PLATFORM_CREATE_SHADER(name) platform_shader name(s8 *Name)
+typedef PLATFORM_CREATE_SHADER(platform_create_shader);
+
+#define PLATFORM_GET_DEFAULT_SHADER(name) platform_shader name(void)
+typedef PLATFORM_GET_DEFAULT_SHADER(platform_get_default_shader);
+
+#define PLATFORM_SET_SHADER(name) void name(platform_shader Shader)
+typedef PLATFORM_SET_SHADER(platform_set_shader);
+
 #define PLATFORM_DRAW_SPRITE(name) void name(s32 SpriteIndex, f32 *Matrix)
 typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
 
@@ -212,6 +223,9 @@ typedef struct platform_api
   platform_log_message_plain *LogMessagePlain;
   
   platform_create_sprite *CreateSprite;
+  platform_create_shader *CreateShader;
+  platform_get_default_shader *GetDefaultShader;
+  platform_set_shader *SetShader;
   platform_draw_sprite *DrawSprite;
   
   platform_copy_memory *CopyMemory;

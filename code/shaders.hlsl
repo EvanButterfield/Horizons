@@ -1,6 +1,6 @@
 struct vs_input
 {
-  float2 Pos   : POSITION;
+  float3 Pos   : POSITION;
   float2 UV    : TEXCOORD;
   float3 Color : COLOR;
 };
@@ -24,8 +24,8 @@ Texture2D<float4> texture0 : register(t0);
 ps_input VS(vs_input Input)
 {
   ps_input Output;
-  Output.Pos = mul(float4(Input.Pos, 0, 1), Transform);
-  Output.Pos.z = 1;
+  Output.Pos = mul(float4(Input.Pos, 1), Transform);
+  // Output.Pos.z = 1;
   Output.UV = Input.UV;
   Output.Color = float4(Input.Color, 1);
   

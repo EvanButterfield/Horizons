@@ -19,18 +19,28 @@ typedef struct d3d11_sprite
   ID3D11ShaderResourceView *TextureView;
 } d3d11_sprite;
 
+typedef struct d3d11_mesh
+{
+  ID3D11Buffer *VBuffer;
+  ID3D11Buffer *IBuffer;
+  u32 IndexCount;
+} d3d11_mesh;
+
 typedef struct d3d11_state
 {
   ID3D11Device *Device;
   ID3D11DeviceContext *Context;
   
   IDXGISwapChain1 *SwapChain;
-  ID3D11Buffer *VBuffer;
-  ID3D11Buffer *IBuffer;
   
   ID3D11Buffer *UBuffer;
+  
   d3d11_shader DefaultShader;
   d3d11_shader CurrentShader;
+  d3d11_sprite DefaultSprite;
+  d3d11_sprite CurrentSprite;
+  d3d11_mesh DefaultMesh;
+  d3d11_mesh CurrentMesh;
   
   ID3D11SamplerState* Sampler;
   ID3D11BlendState* BlendState;

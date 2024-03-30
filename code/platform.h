@@ -151,7 +151,25 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[WARNING]: ", 11},
   { "[ERROR]:   ", 11} };
 
+typedef struct vertex_2d
+{
+  float Position[2];
+  float UV[2];
+  float Color[3];
+} vertex_2d;
+
+typedef struct vertex_3d
+{
+  float Position[3];
+  float UV[2];
+  float Color[3];
+} vertex_3d;
+
+typedef void *platform_sprite;
+typedef void *platform_mesh;
 typedef void *platform_shader;
+
+// TODO(evan): Create a metadata thing to generate this
 
 // File I/O
 #define PLATFORM_OPEN_FILE(name) platform_file_handle name(string8 FileName, b32 IsResource, file_open_flags Flags)
@@ -188,8 +206,30 @@ typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
 // Rendering
 // Returns the sprite index
-#define PLATFORM_CREATE_SPRITE(name) s32 name(u32 *Texture, u32 TexWidth, u32 TexHeight)
+// TODO(evan): Store sprites in the platform perm arena and return void *
+#define PLATFORM_CREATE_SPRITE(name) platform_sprite name(u32 *Texture, u32 TexWidth, u32 TexHeight)
 typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
+
+#define PLATFORM_GET_DEFAULT_SPRITE(name) platform_sprite name()
+typedef PLATFORM_GET_DEFAULT_SPRITE(platform_get_default_sprite);
+
+#define PLATFORM_SET_SPRITE(name) void name(platform_sprite Sprite)
+typedef PLATFORM_SET_SPRITE(platform_set_sprite);
+
+#define PLATFORM_DRAW_SPRITE(name) void name(f32 *Matrix)
+typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
+
+#define PLATFORM_CREATE_MESH(name) platform_mesh name(vertex_3d *Vertices, u32 VertexCount, u32 *Indices, u32 IndexCount)
+typedef PLATFORM_CREATE_MESH(platform_create_mesh);
+
+#define PLATFORM_GET_DEFAULT_MESH(name) platform_mesh name()
+typedef PLATFORM_GET_DEFAULT_MESH(platform_get_default_mesh);
+
+#define PLATFORM_SET_MESH(name) void name(platform_mesh Mesh)
+typedef PLATFORM_SET_MESH(platform_set_mesh);
+
+#define PLATFORM_DRAW_MESH(name) void name(f32 *Matrix)
+typedef PLATFORM_DRAW_MESH(platform_draw_mesh);
 
 #define PLATFORM_CREATE_SHADER(name) platform_shader name(s8 *Name)
 typedef PLATFORM_CREATE_SHADER(platform_create_shader);
@@ -199,9 +239,6 @@ typedef PLATFORM_GET_DEFAULT_SHADER(platform_get_default_shader);
 
 #define PLATFORM_SET_SHADER(name) void name(platform_shader Shader)
 typedef PLATFORM_SET_SHADER(platform_set_shader);
-
-#define PLATFORM_DRAW_SPRITE(name) void name(s32 SpriteIndex, f32 *Matrix)
-typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
 
 
 // Misc
@@ -223,10 +260,16 @@ typedef struct platform_api
   platform_log_message_plain *LogMessagePlain;
   
   platform_create_sprite *CreateSprite;
+  platform_get_default_sprite *GetDefaultSprite;
+  platform_set_sprite *SetSprite;
+  platform_draw_sprite *DrawSprite;
+  platform_create_mesh *CreateMesh;
+  platform_get_default_mesh *GetDefaultMesh;
+  platform_set_mesh *SetMesh;
+  platform_draw_mesh *DrawMesh;
   platform_create_shader *CreateShader;
   platform_get_default_shader *GetDefaultShader;
   platform_set_shader *SetShader;
-  platform_draw_sprite *DrawSprite;
   
   platform_copy_memory *CopyMemory;
   platform_zero_memory *ZeroMemory;

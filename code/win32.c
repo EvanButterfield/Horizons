@@ -343,29 +343,48 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
 
 internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
 {
-  if(GlobalState->D3D11State.Device)
-  {
-    if(GlobalState->NumSprites < MAX_ENTITIES)
-    {
-      GlobalState->Sprites[GlobalState->NumSprites] =
-        D3D11CreateSprite(&GlobalState->D3D11State, Texture, TexWidth, TexHeight);
-      ++GlobalState->NumSprites;
-    }
-    else
-    {
-      Win32LogMessagePlain("Already at max sprite capacity\n",
-                           false, MESSAGE_SEVERITY_WARNING);
-      return(-1);
-    }
-  }
-  else
-  {
-    Win32LogMessagePlain("D3D11 has not been initialized yet\n",
-                         false, MESSAGE_SEVERITY_WARNING);
-    return(-1);
-  }
-  
-  return(GlobalState->NumSprites - 1);
+  d3d11_sprite Sprite =
+    D3D11CreateSprite(&GlobalState->D3D11State, Texture, TexWidth, TexHeight);
+  void *Sprite_ = PushStruct(&GlobalState->PermArena, d3d11_sprite);
+  Win32CopyMemory(Sprite_, &Sprite, sizeof(d3d11_sprite));
+  return(Sprite_);
+}
+
+internal PLATFORM_GET_DEFAULT_SPRITE(Win32GetDefaultSprite)
+{
+  platform_sprite Sprite = &GlobalState->D3D11State.DefaultSprite;
+  return(Sprite);
+}
+
+internal PLATFORM_SET_SPRITE(Win32SetSprite)
+{
+  d3d11_sprite *Sprite_ = Sprite;
+  GlobalState->D3D11State.CurrentSprite = *Sprite_;
+}
+
+internal PLATFORM_CREATE_MESH(Win32CreateMesh)
+{
+  d3d11_mesh Mesh = D3D11CreateMesh(&GlobalState->D3D11State, Vertices, VertexCount,
+                                    Indices, IndexCount);
+  void *MeshStored = PushStruct(&GlobalState->PermArena, d3d11_mesh);
+  return(MeshStored);
+}
+
+internal PLATFORM_GET_DEFAULT_MESH(Win32GetDefaultMesh)
+{
+  d3d11_mesh *Mesh = &GlobalState->D3D11State.DefaultMesh;
+  return(Mesh);
+}
+
+internal PLATFORM_SET_MESH(Win32SetMesh)
+{
+  d3d11_mesh *Mesh_ = Mesh;
+  GlobalState->D3D11State.CurrentMesh = *Mesh_;
+}
+
+internal PLATFORM_DRAW_MESH(Win32DrawMesh)
+{
+  D3D11DrawMesh(&GlobalState->D3D11State, Matrix, &GlobalState->Platform);
 }
 
 internal PLATFORM_CREATE_SHADER(Win32CreateShader)
@@ -391,9 +410,7 @@ internal PLATFORM_SET_SHADER(Win32SetShader)
 
 internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
 {
-  d3d11_sprite *Sprite = &GlobalState->Sprites[SpriteIndex];
-  D3D11DrawSprite(&GlobalState->D3D11State, Sprite, Matrix,
-                  GlobalState->WindowDimension, &GlobalState->Platform);
+  D3D11DrawSprite(&GlobalState->D3D11State, Matrix, &GlobalState->Platform);
 }
 
 internal LRESULT CALLBACK
@@ -437,10 +454,16 @@ WinMain(HINSTANCE Instance,
     Platform.StrToInt = Win32StrToInt;
     
     Platform.CreateSprite = Win32CreateSprite;
+    Platform.GetDefaultSprite = Win32GetDefaultSprite;
+    Platform.SetSprite = Win32SetSprite;
+    Platform.DrawSprite = Win32DrawSprite;
+    Platform.CreateMesh = Win32CreateMesh;
+    Platform.GetDefaultMesh = Win32GetDefaultMesh;
+    Platform.SetMesh = Win32SetMesh;
+    Platform.DrawMesh = Win32DrawMesh;
     Platform.CreateShader = Win32CreateShader;
     Platform.GetDefaultShader = Win32GetDefaultShader;
     Platform.SetShader = Win32SetShader;
-    Platform.DrawSprite = Win32DrawSprite;
     GameMemory.Platform = Platform;
     
     memory_index PlatformPermMemorySize = Mebibytes(64);

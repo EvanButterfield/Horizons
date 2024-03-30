@@ -13,20 +13,8 @@ typedef struct game_state
   
   b32 Initialized;
   
-  s32 EntityCount;
-  s32 StartChunkEntityIndex;
-  
-  platform_mesh Mesh;
-  platform_sprite Sprite;
-  platform_shader Shader;
-  
-  b32 OnGround;
-  f32 Speed;
-  f32 FrictionCoefficient;
-  f32 BounceDamping;
-  
-  vec2 CameraPos;
-  f32 CameraWindowSize;
+  vec3 CameraPosition;
+  vec3 CameraRotation;
 } game_state;
 
 #endif //HORIZONS_H

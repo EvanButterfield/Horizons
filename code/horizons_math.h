@@ -12,6 +12,8 @@ typedef union vec2
   f32 Elements[2];
 } vec2;
 
+#define Vec2(x, y) (vec2){(x), (y)}
+
 typedef union vec3
 {
   struct
@@ -25,6 +27,8 @@ typedef union vec3
   f32 Elements[3];
 } vec3;
 
+#define Vec3(x, y, z) (vec3){(x), (y), (z)}
+
 typedef union vec4
 {
   struct
@@ -37,6 +41,8 @@ typedef union vec4
   };
   f32 Elements[4];
 } vec4;
+
+#define Vec4(x, y, z, w) (vec4){(x), (y), (z), (w)}
 
 typedef union mat3
 {

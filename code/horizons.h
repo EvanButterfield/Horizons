@@ -19,7 +19,6 @@ typedef struct game_state
   platform_mesh Mesh;
   platform_sprite Sprite;
   platform_shader Shader;
-  platform_shader FancyShader;
   
   b32 OnGround;
   f32 Speed;

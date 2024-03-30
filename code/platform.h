@@ -205,13 +205,14 @@ typedef PLATFORM_ZERO_MEMORY(platform_zero_memory);
 
 
 // Rendering
-// Returns the sprite index
-// TODO(evan): Store sprites in the platform perm arena and return void *
 #define PLATFORM_CREATE_SPRITE(name) platform_sprite name(u32 *Texture, u32 TexWidth, u32 TexHeight)
 typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 
 #define PLATFORM_GET_DEFAULT_SPRITE(name) platform_sprite name()
 typedef PLATFORM_GET_DEFAULT_SPRITE(platform_get_default_sprite);
+
+#define PLATFORM_SET_DEFAULT_SPRITE(name) void name()
+typedef PLATFORM_SET_DEFAULT_SPRITE(platform_set_default_sprite);
 
 #define PLATFORM_SET_SPRITE(name) void name(platform_sprite Sprite)
 typedef PLATFORM_SET_SPRITE(platform_set_sprite);
@@ -225,6 +226,9 @@ typedef PLATFORM_CREATE_MESH(platform_create_mesh);
 #define PLATFORM_GET_DEFAULT_MESH(name) platform_mesh name()
 typedef PLATFORM_GET_DEFAULT_MESH(platform_get_default_mesh);
 
+#define PLATFORM_SET_DEFAULT_MESH(name) void name()
+typedef PLATFORM_SET_DEFAULT_MESH(platform_set_default_mesh);
+
 #define PLATFORM_SET_MESH(name) void name(platform_mesh Mesh)
 typedef PLATFORM_SET_MESH(platform_set_mesh);
 
@@ -236,6 +240,9 @@ typedef PLATFORM_CREATE_SHADER(platform_create_shader);
 
 #define PLATFORM_GET_DEFAULT_SHADER(name) platform_shader name(void)
 typedef PLATFORM_GET_DEFAULT_SHADER(platform_get_default_shader);
+
+#define PLATFORM_SET_DEFAULT_SHADER(name) void name()
+typedef PLATFORM_SET_DEFAULT_SHADER(platform_set_default_shader);
 
 #define PLATFORM_SET_SHADER(name) void name(platform_shader Shader)
 typedef PLATFORM_SET_SHADER(platform_set_shader);
@@ -261,14 +268,17 @@ typedef struct platform_api
   
   platform_create_sprite *CreateSprite;
   platform_get_default_sprite *GetDefaultSprite;
+  platform_set_default_sprite *SetDefaultSprite;
   platform_set_sprite *SetSprite;
   platform_draw_sprite *DrawSprite;
   platform_create_mesh *CreateMesh;
   platform_get_default_mesh *GetDefaultMesh;
+  platform_set_default_mesh *SetDefaultMesh;
   platform_set_mesh *SetMesh;
   platform_draw_mesh *DrawMesh;
   platform_create_shader *CreateShader;
   platform_get_default_shader *GetDefaultShader;
+  platform_set_default_shader *SetDefaultShader;
   platform_set_shader *SetShader;
   
   platform_copy_memory *CopyMemory;

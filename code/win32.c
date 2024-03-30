@@ -356,6 +356,11 @@ internal PLATFORM_GET_DEFAULT_SPRITE(Win32GetDefaultSprite)
   return(Sprite);
 }
 
+internal PLATFORM_SET_DEFAULT_SPRITE(Win32SetDefaultSprite)
+{
+  GlobalState->D3D11State.CurrentSprite = GlobalState->D3D11State.DefaultSprite;
+}
+
 internal PLATFORM_SET_SPRITE(Win32SetSprite)
 {
   d3d11_sprite *Sprite_ = Sprite;
@@ -374,6 +379,11 @@ internal PLATFORM_GET_DEFAULT_MESH(Win32GetDefaultMesh)
 {
   d3d11_mesh *Mesh = &GlobalState->D3D11State.DefaultMesh;
   return(Mesh);
+}
+
+internal PLATFORM_SET_DEFAULT_MESH(Win32SetDefaultMesh)
+{
+  GlobalState->D3D11State.CurrentMesh = GlobalState->D3D11State.DefaultMesh;
 }
 
 internal PLATFORM_SET_MESH(Win32SetMesh)
@@ -401,6 +411,11 @@ internal PLATFORM_GET_DEFAULT_SHADER(Win32GetDefaultShader)
 {
   platform_shader Shader = &GlobalState->D3D11State.DefaultShader;
   return(Shader);
+}
+
+internal PLATFORM_SET_DEFAULT_SHADER(Win32SetDefaultShader)
+{
+  GlobalState->D3D11State.CurrentShader = GlobalState->D3D11State.DefaultShader;
 }
 
 internal PLATFORM_SET_SHADER(Win32SetShader)
@@ -455,14 +470,17 @@ WinMain(HINSTANCE Instance,
     
     Platform.CreateSprite = Win32CreateSprite;
     Platform.GetDefaultSprite = Win32GetDefaultSprite;
+    Platform.SetDefaultSprite = Win32SetDefaultSprite;
     Platform.SetSprite = Win32SetSprite;
     Platform.DrawSprite = Win32DrawSprite;
     Platform.CreateMesh = Win32CreateMesh;
     Platform.GetDefaultMesh = Win32GetDefaultMesh;
+    Platform.SetDefaultMesh = Win32SetDefaultMesh;
     Platform.SetMesh = Win32SetMesh;
     Platform.DrawMesh = Win32DrawMesh;
     Platform.CreateShader = Win32CreateShader;
     Platform.GetDefaultShader = Win32GetDefaultShader;
+    Platform.SetDefaultShader = Win32SetDefaultShader;
     Platform.SetShader = Win32SetShader;
     GameMemory.Platform = Platform;
     

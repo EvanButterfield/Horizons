@@ -19,7 +19,6 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->Mesh = Platform->GetDefaultMesh();
     State->Sprite = Platform->GetDefaultSprite();
     State->Shader = Platform->GetDefaultShader();
-    State->FancyShader = Platform->CreateShader("fancy_shader");
     
     State->TempArena.Used = 0;
     State->Initialized = true;
@@ -39,6 +38,9 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                            (vec3){1, 1, 1});
   mat4 M = Mat4Mul(Transform3D, PrevM);
   Platform->DrawMesh((f32 *)M.Elements);
+  
+  s32 DeltaTimeI = (s32)roundf(DeltaTime*1000);
+  
   
   State->TempArena.Used = 0;
   return(Input->Keyboard.Escape);

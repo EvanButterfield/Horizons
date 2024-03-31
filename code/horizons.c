@@ -16,31 +16,94 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                     Memory->PermanentStorageSize - sizeof(game_state));
     InitializeArena(&State->TempArena, (u8 *)Memory->TempStorage, Memory->TempStorageSize);
     
-    State->CameraPosition = Vec3(0, 0, 0);
-    State->CameraRotation = Vec3(90, 0, 0);
+    State->CameraPosition = Vec3(0, 0, 5);
+    State->CameraRotation = Vec3(0, 90, 0);
+    State->CameraFront = Vec3(0, 0, 0);
+    State->CameraUp = Vec3(0, 1, 0);
     
     State->TempArena.Used = 0;
     State->Initialized = true;
   }
   
+  State->Time += DeltaTime;
+  
   // mat4 Orth = Mat4Orthographic(0, (f32)WindowDimension.Width,
   // (f32)WindowDimension.Height, 0,
   // 0, 100);
   
+  {
+    f32 Sensitivity = 25;
+    f32 DeltaX = (f32)Input->Mouse.X - State->LastInput.Mouse.X;
+    f32 DeltaY = (f32)Input->Mouse.Y - State->LastInput.Mouse.Y;
+    f32 MouseX = DeltaX*Sensitivity*DeltaTime;
+    f32 MouseY = DeltaY*Sensitivity*DeltaTime;
+    
+    State->CameraRotation.Pitch += MouseY;
+    if(State->CameraRotation.Pitch > 89)
+    {
+      State->CameraRotation.Pitch = 89;
+    }
+    if(State->CameraRotation.Pitch < -89)
+    {
+      State->CameraRotation.Pitch = -89;
+    }
+    
+    // TODO(evan): Make sure this is between 0 and 360
+    State->CameraRotation.Yaw -= MouseX;
+    
+    State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
+                                               State->CameraRotation.y*DEG_TO_RAD);
+    
+    
+    f32 Speed = 12;
+    vec2 Movement = {0};
+    if(Input->Keyboard.W)
+    {
+      Movement.z -= 1;
+    }
+    if(Input->Keyboard.S)
+    {
+      Movement.z += 1;
+    }
+    if(Input->Keyboard.D)
+    {
+      Movement.x += 1;
+    }
+    if(Input->Keyboard.A)
+    {
+      Movement.x -= 1;
+    }
+    Movement = Vec2Normalize(Movement);
+    Movement = Vec2Scale(Movement, Speed*DeltaTime);
+    
+    vec3 CameraGroundedRotation =
+      Vec3Normalize(Vec3(State->CameraFront.x, 0, State->CameraFront.z));
+    State->CameraPosition =
+      Vec3Add(State->CameraPosition, Vec3Scale(CameraGroundedRotation, Movement.z));
+    State->CameraPosition =
+      Vec3Add(State->CameraPosition,
+              Vec3Scale(Vec3Normalize(Vec3Cross(CameraGroundedRotation,
+                                                State->CameraUp)),
+                        Movement.x));
+  }
+  
   f32 Aspect = (f32)WindowDimension.Height / WindowDimension.Width;
-  mat4 Perspective = Mat4Perspective(Aspect, 60, 0.01f, 100);
-  // mat4 View = Mat4View(State->CameraPosition, State->CameraRotation, Vec3(0, 1, 0));
-  mat4 View = Mat4Identity();
+  mat4 Perspective = Mat4Perspective(Aspect, 80*DEG_TO_RAD, 0.01f, 100);
+  mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
-  mat4 Transform3D = Mat4CreateTransform3D((vec3){0, -5, 5},
-                                           (vec3){0, 45, 0},
-                                           (vec3){1, 1, 1});
-  mat4 M = Mat4Mul(Transform3D, PrevM);
+  mat4 Transform = Mat4CreateTransform3D(Vec3(0, 0, 0),
+                                         Vec3(0, 45, 0),
+                                         Vec3(1, 1, 1));
+  mat4 M = Mat4Mul(Transform, PrevM);
   Platform->DrawMesh((f32 *)M.Elements);
   
-  s32 DeltaTimeI = (s32)roundf(DeltaTime*1000);
+  Transform = Mat4CreateTransform3D(Vec3(5, 1, 0),
+                                    Vec3(0, -45, 0),
+                                    Vec3(1, 1, 1));
+  M = Mat4Mul(Transform, PrevM);
+  Platform->DrawMesh((f32 *)M.Elements);
   
-  
+  State->LastInput = *Input;
   State->TempArena.Used = 0;
   return(Input->Keyboard.Escape);
 }

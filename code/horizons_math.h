@@ -9,6 +9,10 @@ typedef union vec2
   {
     f32 x, y;
   };
+  struct
+  {
+    f32 x_, z;
+  };
   f32 Elements[2];
 } vec2;
 
@@ -23,6 +27,10 @@ typedef union vec3
   struct
   {
     f32 r, g, b;
+  };
+  struct
+  {
+    f32 Pitch, Yaw, Roll;
   };
   f32 Elements[3];
 } vec3;
@@ -89,12 +97,49 @@ Vec2Subtract(vec2 A, vec2 B)
 }
 
 internal inline vec2
+Vec2Scale(vec2 A, f32 B)
+{
+  vec2 Result;
+  Result.x = A.x*B;
+  Result.y = A.y*B;
+  
+  return(Result);
+}
+
+internal inline vec2
 Vec2DivideScalar(vec2 A, f32 B)
 {
   vec2 Result;
   Result.x = A.x/B;
   Result.y = A.y/B;
   
+  return(Result);
+}
+
+internal inline f32
+Vec2MulDot(vec2 A, vec2 B)
+{
+  f32 Result = A.x*B.x + A.y*B.y;
+  return(Result);
+}
+
+internal inline f32
+Vec2Length(vec2 V)
+{
+  f32 Result = sqrtf(Vec2MulDot(V, V));
+  return(Result);
+}
+
+internal inline vec2
+Vec2Normalize(vec2 V)
+{
+  f32 Length = Vec2Length(V);
+  if(Length == 0)
+  {
+    return(Vec2(0, 0));
+  }
+  f32 K = 1 / Length;
+  vec2 Result = Vec2Scale(V, K);
   return(Result);
 }
 
@@ -167,6 +212,18 @@ Vec3Normalize(vec3 V)
   f32 K = 1 / Length;
   vec3 Result = Vec3Scale(V, K);
   return(Result);
+}
+
+internal vec3
+Vec3FPEulerToRotation(f32 Pitch, f32 Yaw)
+{
+  vec3 Direction;
+  Direction.Pitch = cosf(Yaw)*cosf(Pitch);
+  Direction.Yaw = sinf(Pitch);
+  Direction.Roll = sinf(Yaw)*cosf(Pitch);
+  Direction = Vec3Normalize(Direction);
+  
+  return(Direction);
 }
 
 internal vec4
@@ -364,7 +421,7 @@ Mat4LookAt(vec3 Eye, vec3 Center, vec3 Up)
   vec3 S = Vec3Normalize(Vec3Cross(F, Up));
   vec3 U = Vec3Cross(S, F);
   
-  mat4 Result = Mat4Identity();
+  mat4 Result = {0};
   Result.Elements[0][0] = S.x;
   Result.Elements[1][0] = S.y;
   Result.Elements[2][0] = S.z;
@@ -377,7 +434,7 @@ Mat4LookAt(vec3 Eye, vec3 Center, vec3 Up)
   Result.Elements[3][0] = -Vec3MulDot(S, Eye);
   Result.Elements[3][1] = -Vec3MulDot(U, Eye);
   Result.Elements[3][2] = Vec3MulDot(F, Eye);
-  // Result.Elements[3][3] = 1;
+  Result.Elements[3][3] = 1;
   
   return(Result);
 }
@@ -413,7 +470,8 @@ Mat4CreateTransform3D(vec3 Position, vec3 Rotation, vec3 Scale)
   mat4 Result = Mat4Translate(Mat4Identity(), Position);
   if(Rotation.x || Rotation.y || Rotation.z)
   {
-    Result = Mat4Rotate(Result, Vec3Length(Rotation), Vec3Normalize(Rotation));
+    vec3 RotationRadians = Vec3Scale(Rotation, DEG_TO_RAD);
+    Result = Mat4Rotate(Result, Vec3Length(RotationRadians), Vec3Normalize(RotationRadians));
   }
   Result = Mat4Scale(Result, Scale);
   

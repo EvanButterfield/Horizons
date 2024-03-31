@@ -41,9 +41,7 @@ typedef struct game_mouse_input
   b32 LButton;
   b32 RButton;
   
-  s32 TargetX;
   s32 X;
-  s32 TargetY;
   s32 Y;
 } game_mouse_input;
 

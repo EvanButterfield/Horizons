@@ -209,11 +209,10 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   
   ID3D11RasterizerState* RasterizerState;
   {
-    // disable culling
     D3D11_RASTERIZER_DESC Desc =
     {
       .FillMode = D3D11_FILL_SOLID,
-      .CullMode = D3D11_CULL_NONE,
+      .CullMode = D3D11_CULL_BACK,
       .DepthClipEnable = TRUE,
     };
     

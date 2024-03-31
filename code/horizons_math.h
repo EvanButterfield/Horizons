@@ -302,77 +302,50 @@ Mat4Mul(mat4 A, mat4 B)
 }
 
 internal mat4
-Mat4Translate(mat4 M, vec3 Translation)
+Mat4Translate(vec3 Translation)
 {
-  vec4 First = Vec4Scale(M.Rows[0], Translation.x);
-  vec4 Second = Vec4Scale(M.Rows[1], Translation.y);
-  vec4 Third = Vec4Scale(M.Rows[2], Translation.z);
-  
-  vec4 Final = Vec4Add(First, Second);
-  Final = Vec4Add(Final, Third);
-  Final = Vec4Add(Final, M.Rows[3]);
-  
-  mat4 Result;
-  Result.Rows[0] = M.Rows[0];
-  Result.Rows[1] = M.Rows[1];
-  Result.Rows[2] = M.Rows[2];
-  Result.Rows[3] = Final;
+  mat4 Result = Mat4Identity();
+  Result.Elements[3][0] = Translation.x;
+  Result.Elements[3][1] = Translation.y;
+  Result.Elements[3][2] = Translation.z;
   
   return(Result);
 }
 
 internal mat4
-Mat4Rotate(mat4 M, f32 Angle, vec3 RawAxis)
+Mat4Rotate(f32 Angle, vec3 Axis)
 {
-  f32 C = cosf(Angle);
+  mat4 Result = Mat4Identity();
+  Angle = -Angle;
+  Axis = Vec3Normalize(Axis);
+  
   f32 S = sinf(Angle);
+  f32 C = cosf(Angle);
+  f32 CVal = 1 - C;
   
-  vec3 Axis = Vec3Normalize(RawAxis);
-  vec3 Temp = Vec3Scale(Axis, 1 - C);
+  Result.Elements[0][0] = (Axis.x*Axis.x*CVal) + C;
+  Result.Elements[0][1] = (Axis.x*Axis.y*CVal) + (Axis.z*S);
+  Result.Elements[0][2] = (Axis.x*Axis.z*CVal) - (Axis.y*S);
   
-  mat3 Rotate;
-  Rotate.Elements[0][0] = C + Temp.Elements[0]*Axis.Elements[0];
-  Rotate.Elements[0][1] = Temp.Elements[0]*Axis.Elements[1] + S*Axis.Elements[2];
-  Rotate.Elements[0][2] = Temp.Elements[0]*Axis.Elements[2] - S*Axis.Elements[1];
+  Result.Elements[1][0] = (Axis.y*Axis.x*CVal) - (Axis.z*S);
+  Result.Elements[1][1] = (Axis.y*Axis.y*CVal) + C;
+  Result.Elements[1][2] = (Axis.y*Axis.z*CVal) + (Axis.x*S);
   
-  Rotate.Elements[1][0] = Temp.Elements[1]*Axis.Elements[0] - S*Axis.Elements[2];
-  Rotate.Elements[1][1] = C + Temp.Elements[1]*Axis.Elements[1];
-  Rotate.Elements[1][2] = Temp.Elements[1]*Axis.Elements[2] + S*Axis.Elements[0];
+  Result.Elements[2][0] = (Axis.z*Axis.x*CVal) + (Axis.y*S);
+  Result.Elements[2][1] = (Axis.z*Axis.y*CVal) - (Axis.x*S);
+  Result.Elements[2][2] = (Axis.z*Axis.z*CVal) + C;
   
-  Rotate.Elements[2][0] = Temp.Elements[2]*Axis.Elements[0] + S*Axis.Elements[1];
-  Rotate.Elements[2][1] = Temp.Elements[2]*Axis.Elements[1] - S*Axis.Elements[0];
-  Rotate.Elements[2][2] = C + Temp.Elements[2]*Axis.Elements[2];
-  
-  vec4 First, Second, Third;
-  
-  mat4 Result;
-  First = Vec4Scale(M.Rows[0], Rotate.Elements[0][0]);
-  Second = Vec4Scale(M.Rows[1], Rotate.Elements[0][1]);
-  Third = Vec4Scale(M.Rows[2], Rotate.Elements[0][2]);
-  Result.Rows[0] = Vec4Add(Vec4Add(First, Second), Third);
-  
-  First = Vec4Scale(M.Rows[0], Rotate.Elements[1][0]);
-  Second = Vec4Scale(M.Rows[1], Rotate.Elements[1][1]);
-  Third = Vec4Scale(M.Rows[2], Rotate.Elements[1][2]);
-  Result.Rows[1] = Vec4Add(Vec4Add(First, Second), Third);
-  
-  First = Vec4Scale(M.Rows[0], Rotate.Elements[2][0]);
-  Second = Vec4Scale(M.Rows[1], Rotate.Elements[2][1]);
-  Third = Vec4Scale(M.Rows[2], Rotate.Elements[2][2]);
-  Result.Rows[2] = Vec4Add(Vec4Add(First, Second), Third);
-  
-  Result.Rows[3] = M.Rows[3];
   return(Result);
 }
 
 internal mat4
-Mat4Scale(mat4 M, vec3 Scale)
+Mat4Scale(vec3 Scale)
 {
-  mat4 Result;
-  Result.Rows[0] = Vec4Scale(M.Rows[0], Scale.x);
-  Result.Rows[1] = Vec4Scale(M.Rows[1], Scale.y);
-  Result.Rows[2] = Vec4Scale(M.Rows[2], Scale.z);
-  Result.Rows[3] = M.Rows[3];
+  mat4 Result = {0};
+  Result.Elements[0][0] = Scale.x;
+  Result.Elements[1][1] = Scale.y;
+  Result.Elements[2][2] = Scale.z;
+  Result.Elements[3][3] = 1;
   
   return(Result);
 }
@@ -399,17 +372,16 @@ Mat4Orthographic(f32 Left, f32 Right, f32 Bottom, f32 Top, f32 Near, f32 Far)
 internal mat4
 Mat4Perspective(f32 Aspect, f32 FOV, f32 Near, f32 Far)
 {
-  Assert(fabs(Aspect - EPSILON) > 0);
-  
-  f32 TanHalfFOV = tanf(FOV / 2);
-  f32 FarMNear = Far - Near;
+  FOV *= DEG_TO_RAD;
+  // Assert(fabs(Aspect - EPSILON) > 0);
   
   mat4 Result = {0};
-  Result.Elements[0][0] = 1 / (Aspect*TanHalfFOV);
-  Result.Elements[1][1] = 1 / TanHalfFOV;
-  Result.Elements[2][2] = Far / FarMNear;
+  f32 Cotan = 1 / tanf(FOV / 2);
+  Result.Elements[0][0] = Cotan / Aspect;
+  Result.Elements[1][1] = Cotan;
   Result.Elements[2][3] = 1;
-  Result.Elements[3][2] = -(Far*Near) / FarMNear;
+  Result.Elements[2][2] = -(Far / (Near - Far));
+  Result.Elements[3][2] = Near*Far / (Near - Far);
   
   return(Result);
 }
@@ -423,14 +395,20 @@ Mat4LookAt(vec3 Eye, vec3 Center, vec3 Up)
   
   mat4 Result = {0};
   Result.Elements[0][0] = S.x;
-  Result.Elements[1][0] = S.y;
-  Result.Elements[2][0] = S.z;
   Result.Elements[0][1] = U.x;
-  Result.Elements[1][1] = U.y;
-  Result.Elements[2][1] = U.z;
   Result.Elements[0][2] = -F.x;
+  Result.Elements[0][3] = 0;
+  
+  Result.Elements[1][0] = S.y;
+  Result.Elements[1][1] = U.y;
   Result.Elements[1][2] = -F.y;
+  Result.Elements[1][3] = 0;
+  
+  Result.Elements[2][0] = S.z;
+  Result.Elements[2][1] = U.z;
   Result.Elements[2][2] = -F.z;
+  Result.Elements[2][3] = 0;
+  
   Result.Elements[3][0] = -Vec3MulDot(S, Eye);
   Result.Elements[3][1] = -Vec3MulDot(U, Eye);
   Result.Elements[3][2] = Vec3MulDot(F, Eye);
@@ -446,6 +424,7 @@ Mat4View(vec3 Position, vec3 Rotation, vec3 Up)
   return(Result);
 }
 
+#if 0
 internal mat4
 Mat4CreateTransform2D(vec2 Pos, f32 Angle, vec2 Scale, window_dimension _WindowDimension)
 {
@@ -463,17 +442,26 @@ Mat4CreateTransform2D(vec2 Pos, f32 Angle, vec2 Scale, window_dimension _WindowD
   
   return(Result);
 }
+#endif
 
 internal mat4
 Mat4CreateTransform3D(vec3 Position, vec3 Rotation, vec3 Scale)
 {
-  mat4 Result = Mat4Translate(Mat4Identity(), Position);
+  mat4 TranslateM = Mat4Translate(Position);
+  mat4 RotateM;
   if(Rotation.x || Rotation.y || Rotation.z)
   {
     vec3 RotationRadians = Vec3Scale(Rotation, DEG_TO_RAD);
-    Result = Mat4Rotate(Result, Vec3Length(RotationRadians), Vec3Normalize(RotationRadians));
+    RotateM = Mat4Rotate(Vec3Length(RotationRadians), Vec3Normalize(RotationRadians));
   }
-  Result = Mat4Scale(Result, Scale);
+  else
+  {
+    RotateM = Mat4Identity();
+  }
+  mat4 ScaleM = Mat4Scale(Scale);
+  
+  mat4 Result = Mat4Mul(ScaleM, RotateM);
+  Result = Mat4Mul(Result, TranslateM);
   
   return(Result);
 }

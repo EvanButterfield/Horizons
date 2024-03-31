@@ -8,19 +8,19 @@
 
 typedef struct game_state
 {
+  b32 Initialized;
   memory_arena PermArena;
   memory_arena TempArena;
-  
   game_input LastInput;
-  
-  f32 Time;
-  
-  b32 Initialized;
   
   vec3 CameraPosition;
   vec3 CameraRotation;
   vec3 CameraFront;
   vec3 CameraUp;
+  
+  b32 ControllingCharacter;
+  
+  f32 CubeRot;
 } game_state;
 
 #endif //HORIZONS_H

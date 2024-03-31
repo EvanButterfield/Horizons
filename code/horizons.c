@@ -21,16 +21,18 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CameraFront = Vec3(0, 0, 0);
     State->CameraUp = Vec3(0, 1, 0);
     
+    State->ControllingCharacter = true;
+    
     State->TempArena.Used = 0;
     State->Initialized = true;
   }
   
-  State->Time += DeltaTime;
+  if(Input->Keyboard.E && !State->LastInput.Keyboard.E)
+  {
+    State->ControllingCharacter = !State->ControllingCharacter;
+  }
   
-  // mat4 Orth = Mat4Orthographic(0, (f32)WindowDimension.Width,
-  // (f32)WindowDimension.Height, 0,
-  // 0, 100);
-  
+  if(State->ControllingCharacter)
   {
     f32 Sensitivity = 25;
     f32 DeltaX = (f32)Input->Mouse.X - State->LastInput.Mouse.X;
@@ -87,18 +89,20 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                         Movement.x));
   }
   
-  f32 Aspect = (f32)WindowDimension.Height / WindowDimension.Width;
-  mat4 Perspective = Mat4Perspective(Aspect, 80*DEG_TO_RAD, 0.01f, 100);
+  f32 Aspect = (f32)WindowDimension.Width / WindowDimension.Height;
+  mat4 Perspective = Mat4Perspective(Aspect, 60, 0.01f, 100);
   mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
   mat4 Transform = Mat4CreateTransform3D(Vec3(0, 0, 0),
-                                         Vec3(0, 45, 0),
+                                         Vec3(0, 0, 0),
                                          Vec3(1, 1, 1));
   mat4 M = Mat4Mul(Transform, PrevM);
   Platform->DrawMesh((f32 *)M.Elements);
   
-  Transform = Mat4CreateTransform3D(Vec3(5, 1, 0),
-                                    Vec3(0, -45, 0),
+  static f32 Rot = 0;
+  Rot += 90*DeltaTime;
+  Transform = Mat4CreateTransform3D(Vec3(5, 0, 0),
+                                    Vec3(0, Rot, 0),
                                     Vec3(1, 1, 1));
   M = Mat4Mul(Transform, PrevM);
   Platform->DrawMesh((f32 *)M.Elements);

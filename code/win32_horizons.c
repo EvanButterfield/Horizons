@@ -1,9 +1,5 @@
 int _fltused;
 
-#include "types.h"
-#include "platform.h"
-#include "string.h"
-
 #define COBJMACROS
 #include <windows.h>
 #include <windowsx.h>
@@ -14,7 +10,11 @@ int _fltused;
 #undef ZeroMemory
 #undef StrToInt
 
-#include "win32.h"
+#include "horizons_types.h"
+#include "horizons_platform.h"
+#include "horizons_string.h"
+
+#include "win32_horizons.h"
 
 internal PLATFORM_COPY_MEMORY(Win32CopyMemory)
 {
@@ -339,7 +339,7 @@ Win32GetSecondsElapsed(LARGE_INTEGER Start, LARGE_INTEGER End)
   return(Result);
 }
 
-#include "d3d11.c"
+#include "d3d11_horizons.c"
 
 internal PLATFORM_CREATE_SPRITE(Win32CreateSprite)
 {
@@ -361,6 +361,7 @@ internal PLATFORM_CREATE_MESH(Win32CreateMesh)
   d3d11_mesh Mesh = D3D11CreateMesh(&GlobalState->D3D11State, Vertices, VertexCount,
                                     Indices, IndexCount);
   void *MeshStored = PushStruct(&GlobalState->PermArena, d3d11_mesh);
+  Win32CopyMemory(MeshStored, &Mesh, sizeof(d3d11_mesh));
   return(MeshStored);
 }
 
@@ -372,7 +373,7 @@ internal PLATFORM_SET_MESH(Win32SetMesh)
 
 internal PLATFORM_DRAW_MESH(Win32DrawMesh)
 {
-  D3D11DrawMesh(&GlobalState->D3D11State, Matrix, &GlobalState->Platform);
+  D3D11DrawMesh(&GlobalState->D3D11State, Constants, &GlobalState->Platform);
 }
 
 internal PLATFORM_CREATE_SHADER(Win32CreateShader)
@@ -520,6 +521,12 @@ WinMain(HINSTANCE Instance,
         GlobalState->D3D11State =
           InitD3D11(GlobalState->Window, &GlobalState->Platform,
                     &GlobalState->TempArena);
+        if(GlobalState->D3D11State.Device == 0)
+        {
+          Win32LogMessagePlain("D3D11 failed to initialize\n", false, MESSAGE_SEVERITY_ERROR);
+          return(1);
+        }
+        
         GameMemory.DefaultSprite = &GlobalState->D3D11State.DefaultSprite;
         GameMemory.DefaultMesh = &GlobalState->D3D11State.DefaultMesh;
         GameMemory.DefaultShader = &GlobalState->D3D11State.DefaultShader;

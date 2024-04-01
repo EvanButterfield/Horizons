@@ -1,9 +1,9 @@
 /* date = December 9th 2023 0:33 pm */
 
-#ifndef PLATFORM_H
-#define PLATFORM_H
+#ifndef HORIZONS_PLATFORM_H
+#define HORIZONS_PLATFORM_H
 
-#include "types.h"
+#include "horizons_types.h"
 
 #define RESOURCE_PATH_STR "../resources/"
 global string8 ResourcePath = {RESOURCE_PATH_STR, ArrayCount(RESOURCE_PATH_STR) - 1};
@@ -151,21 +151,29 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
 
 typedef struct vertex_2d
 {
-  float Position[2];
-  float UV[2];
-  float Color[3];
+  f32 Position[2];
+  f32 UV[2];
+  f32 Color[3];
 } vertex_2d;
 
 typedef struct vertex_3d
 {
-  float Position[3];
-  float UV[2];
-  float Color[3];
+  f32 Position[3];
+  f32 UV[2];
+  f32 Color[3];
 } vertex_3d;
 
 typedef void *platform_sprite;
 typedef void *platform_mesh;
 typedef void *platform_shader;
+
+#pragma pack(push, 1)
+typedef struct shader_constants
+{
+  f32 Matrix[4][4];
+  f32 Color[4];
+} shader_constants;
+#pragma pack(pop)
 
 // TODO(evan): Create a metadata thing to generate this
 
@@ -218,7 +226,7 @@ typedef PLATFORM_CREATE_MESH(platform_create_mesh);
 #define PLATFORM_SET_MESH(name) void name(platform_mesh Mesh)
 typedef PLATFORM_SET_MESH(platform_set_mesh);
 
-#define PLATFORM_DRAW_MESH(name) void name(f32 *Matrix)
+#define PLATFORM_DRAW_MESH(name) void name(shader_constants *Constants)
 typedef PLATFORM_DRAW_MESH(platform_draw_mesh);
 
 #define PLATFORM_CREATE_SHADER(name) platform_shader name(s8 *Name)
@@ -276,6 +284,15 @@ typedef struct memory
   platform_shader DefaultShader;
 } memory;
 
+internal memory_index
+AlignTo(memory_index Value, memory_index Alignment)
+{
+  memory_index R = Value % Alignment;
+  memory_index Result = R ? (Value + (Alignment - R)) : Value;
+  
+  return(Result);
+}
+
 #define GAME_UPDATE_AND_RENDER(name) b32 name(memory *Memory, game_input *Input, window_dimension WindowDimension, f32 DeltaTime)
 typedef GAME_UPDATE_AND_RENDER(game_update_and_render);
 internal GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
@@ -284,4 +301,4 @@ internal GAME_UPDATE_AND_RENDER(GameUpdateAndRenderStub)
   return(false);
 }
 
-#endif //PLATFORM_H
+#endif //HORIZONS_PLATFORM_H

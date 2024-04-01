@@ -3,7 +3,7 @@
 
 #define AssertHR(HR) Assert(SUCCEEDED(HR))
 
-#include "d3d11.h"
+#include "d3d11_horizons.h"
 
 typedef struct win32_state
 {

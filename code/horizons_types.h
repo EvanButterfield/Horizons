@@ -1,7 +1,7 @@
 /* date = December 8th 2023 9:06 am */
 
-#ifndef TYPES_H
-#define TYPES_H
+#ifndef HORIZONS_TYPES_H
+#define HORIZONS_TYPES_H
 
 #if !defined(COMPILER_MSVC)
 #define COMPILER_MSVC 0
@@ -85,6 +85,8 @@ typedef struct string8
   s8 *Str;
   s32 Length;
 } string8;
+#define String8(Str, Length) (string8){(Str), (Length)}
+#define String8Plain(Str) (string8){(Str), ArrayCount(Str) - 1}
 
 internal inline u32
 SafeTruncateUInt64(u64 Value)
@@ -94,4 +96,4 @@ SafeTruncateUInt64(u64 Value)
   return(Result);
 }
 
-#endif //TYPES_H
+#endif //HORIZONS_TYPES_H

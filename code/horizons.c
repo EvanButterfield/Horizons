@@ -1,10 +1,11 @@
 #include "horizons.h"
-#include "string.h"
+#include "horizons_string.h"
 
 global game_state *State;
 global platform_api *Platform;
 
-internal void UpdatePhysics(s32 EntityIndex, f32 DeltaTime);
+#include "horizons_json.c"
+#include "horizons_gltf.c"
 
 GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
@@ -21,7 +22,12 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CameraFront = Vec3(0, 0, 0);
     State->CameraUp = Vec3(0, 1, 0);
     
-    State->ControllingCharacter = true;
+    State->ControllingCharacter = false;
+    
+    State->CubeRot = 0;
+    
+    LoadGLTF("cube.gltf", &State->CubeMeshes);
+    LoadGLTF("cone.gltf", &State->ConeMeshes);
     
     State->TempArena.Used = 0;
     State->Initialized = true;
@@ -31,6 +37,9 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   {
     State->ControllingCharacter = !State->ControllingCharacter;
   }
+  
+  State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
+                                             State->CameraRotation.y*DEG_TO_RAD);
   
   if(State->ControllingCharacter)
   {
@@ -52,9 +61,6 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     // TODO(evan): Make sure this is between 0 and 360
     State->CameraRotation.Yaw -= MouseX;
-    
-    State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
-                                               State->CameraRotation.y*DEG_TO_RAD);
     
     
     f32 Speed = 12;
@@ -97,15 +103,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                          Vec3(0, 0, 0),
                                          Vec3(1, 1, 1));
   mat4 M = Mat4Mul(Transform, PrevM);
-  Platform->DrawMesh((f32 *)M.Elements);
   
-  static f32 Rot = 0;
-  Rot += 90*DeltaTime;
+  shader_constants Constants;
+  Platform->CopyMemory(Constants.Matrix, M.Elements, sizeof(mat4));
+  Platform->CopyMemory(Constants.Color, State->CubeMeshes[0].Material->Color.Elements, sizeof(vec4));
+  Platform->SetMesh(State->CubeMeshes[0].Mesh);
+  Platform->DrawMesh(&Constants);
+  
+  State->CubeRot += 30*DeltaTime;
   Transform = Mat4CreateTransform3D(Vec3(5, 0, 0),
-                                    Vec3(0, Rot, 0),
+                                    Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135),
                                     Vec3(1, 1, 1));
   M = Mat4Mul(Transform, PrevM);
-  Platform->DrawMesh((f32 *)M.Elements);
+  Platform->CopyMemory(Constants.Matrix, M.Elements, sizeof(mat4));
+  Platform->CopyMemory(Constants.Color, State->ConeMeshes[0].Material->Color.Elements, sizeof(vec4));
+  Platform->SetMesh(State->ConeMeshes[0].Mesh);
+  Platform->DrawMesh(&Constants);
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

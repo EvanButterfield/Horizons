@@ -1,4 +1,4 @@
-#include "d3d11.h"
+#include "d3d11_horizons.h"
 
 // Thanks to mmozeiko for the D3D11 code
 // https://gist.github.com/mmozeiko/5e727f845db182d468a34d524508ad5f
@@ -147,8 +147,8 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   {
     D3D11_BUFFER_DESC Desc =
     {
-      // NOTE(evan): Basic shader has 1 4x4 matrix
-      .ByteWidth = 4*4*sizeof(f32),
+      // NOTE(evan): Basic shader has 1 4x4 matrix and a base color
+      .ByteWidth = (UINT)AlignTo(sizeof(shader_constants), 16),
       .Usage = D3D11_USAGE_DYNAMIC,
       .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
       .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
@@ -158,6 +158,11 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   }
   
   d3d11_shader Shader = D3D11CreateShader_(Device, "shader", TempArena, Platform);
+  if(Shader.VShader == 0)
+  {
+    Platform->LogMessagePlain("Invalid shader file\n", false, MESSAGE_SEVERITY_ERROR);
+    return((d3d11_state){0});
+  }
   
   d3d11_sprite Sprite;
   {
@@ -363,12 +368,12 @@ D3D11DrawSprite(d3d11_state *State, f32 *Matrix, platform_api *Platform)
 }
 
 internal void
-D3D11DrawMesh(d3d11_state *State, f32 *Matrix, platform_api *Platform)
+D3D11DrawMesh(d3d11_state *State, shader_constants *Constants, platform_api *Platform)
 {
   D3D11_MAPPED_SUBRESOURCE Mapped;
   ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
                           0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-  Platform->CopyMemory(Mapped.pData, Matrix, 4*4*sizeof(f32));
+  Platform->CopyMemory(Mapped.pData, Constants, sizeof(shader_constants));
   ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
   
   ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1,
@@ -416,12 +421,22 @@ D3D11CreateShader_(ID3D11Device *Device, s8 *Name,
   string8 PSString = CatStringsPlain(NameString, "_ps.fxc", TempArena, Platform);
   
   platform_file_handle VSHandle = Platform->OpenFile(VSString, false, FILE_OPEN_READ);
+  if(VSHandle.Handle == 0)
+  {
+    Platform->LogMessagePlain("Invalid vertex file name\n", false, MESSAGE_SEVERITY_ERROR);
+    return((d3d11_shader){0});
+  }
   u32 VSSize = Platform->GetFileSize(VSHandle);
   void *VSData = PushSize(TempArena, VSSize);
   Platform->ReadEntireFile(VSHandle, VSSize, VSData);
   Platform->CloseFile(VSHandle);
   
   platform_file_handle PSHandle = Platform->OpenFile(PSString, false, FILE_OPEN_READ);
+  if(PSHandle.Handle == 0)
+  {
+    Platform->LogMessagePlain("Invalid pixel file name\n", false, MESSAGE_SEVERITY_ERROR);
+    return((d3d11_shader){0});
+  }
   u32 PSSize = Platform->GetFileSize(PSHandle);
   void *PSData = PushSize(TempArena, PSSize);
   Platform->ReadEntireFile(PSHandle, PSSize, PSData);

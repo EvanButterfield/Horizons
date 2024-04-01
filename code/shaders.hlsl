@@ -15,6 +15,7 @@ struct ps_input
 cbuffer cbuffer0 : register(b0)
 {
   float4x4 Transform;
+  float4 Color;
 }
 
 sampler sampler0 : register(s0);
@@ -27,7 +28,7 @@ ps_input VS(vs_input Input)
   Output.Pos = mul(float4(Input.Pos, 1), Transform);
   // Output.Pos.z = 1;
   Output.UV = Input.UV;
-  Output.Color = float4(Input.Color, 1);
+  Output.Color = float4(Input.Color, 1)*Color;
   
   return Output;
 }
@@ -35,5 +36,6 @@ ps_input VS(vs_input Input)
 float4 PS(ps_input Input) : SV_TARGET
 {
   float4 Tex = texture0.Sample(sampler0, Input.UV);
-  return Input.Color*Tex;
+  float4 Result = Input.Color*Tex;
+  return Result;
 }

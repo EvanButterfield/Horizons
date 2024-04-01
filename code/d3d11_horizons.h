@@ -1,7 +1,7 @@
 /* date = February 5th 2024 8:24 am */
 
-#ifndef D3D11_H
-#define D3D11_H
+#ifndef D3D11_HORIZONS_H
+#define D3D11_HORIZONS_H
 
 #include <d3d11.h>
 #include <dxgi1_3.h>
@@ -51,4 +51,4 @@ typedef struct d3d11_state
   ID3D11DepthStencilView *DSView;
 } d3d11_state;
 
-#endif //D3D11_H
+#endif //D3D11_HORIZONS_H

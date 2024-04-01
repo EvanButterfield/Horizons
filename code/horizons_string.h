@@ -1,7 +1,7 @@
 /* date = February 4th 2024 4:34 pm */
 
-#ifndef STRING_H
-#define STRING_H
+#ifndef HORIZONS_STRING_H
+#define HORIZONS_STRING_H
 
 // TODO(evan): printf style logging
 
@@ -74,4 +74,23 @@ CatStringsPlain(string8 First, s8 *Second, memory_arena *Arena,
   return(Result);
 }
 
-#endif //STRING_H
+internal b32
+CompareStrings(string8 A, string8 B)
+{
+  if(A.Length != B.Length)
+  {
+    return(false);
+  }
+  
+  for(s32 CharIndex = 0; CharIndex < A.Length; ++CharIndex)
+  {
+    if(A.Str[CharIndex] != B.Str[CharIndex])
+    {
+      return(false);
+    }
+  }
+  
+  return(true);
+}
+
+#endif //HORIZONS_STRING_H

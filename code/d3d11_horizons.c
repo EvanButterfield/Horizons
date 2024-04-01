@@ -11,7 +11,7 @@ D3D11CreateSprite_(ID3D11Device *Device,
                    u32 *Texture, u32 TextureWidth, u32 TextureHeight);
 internal d3d11_mesh
 D3D11CreateMesh_(ID3D11Device *Device,
-                 vertex_3d *VData, u32 VDataLengh,
+                 vertex *VData, u32 VDataLengh,
                  u32 *IData, u32 IDataLength);
 
 internal d3d11_state
@@ -97,26 +97,9 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
     IDXGIDevice_Release(DXGIDevice);
   }
   
-#if 0
-  vertex_2d Data[] =
-  {
-    // NOTE(evan): Flip the UV because all of our images will be upside down
-    { { +0.50f, -0.50f }, { 1, 1 }, { 1, 1, 1 } }, // Bottom right
-    { { -0.50f, -0.50f }, { 0, 1 }, { 1, 1, 1 } }, // Bottom left
-    { { -0.50f, +0.50f }, { 0, 0 }, { 1, 1, 1 } }, // Top left
-    { { +0.50f, +0.50f }, { 1, 0 }, { 1, 1, 1 } }  // Top right
-  };
-  
-  u32 Data[] =
-  {
-    0, 1, 2,
-    3, 0, 2
-  };
-#endif
-  
   d3d11_mesh Mesh;
   {
-    vertex_3d VData[] =
+    vertex VData[] =
     {
       { {-1, -1, -1}, {0, 1}, {1, 1, 1} },
       { {1, -1, -1}, {1, 1}, {1, 1, 1} },
@@ -350,24 +333,6 @@ D3D11StartFrame(d3d11_state *State)
 }
 
 internal void
-D3D11DrawSprite(d3d11_state *State, f32 *Matrix, platform_api *Platform)
-{
-  D3D11_MAPPED_SUBRESOURCE Mapped;
-  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
-                          0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-  Platform->CopyMemory(Mapped.pData, Matrix, 4*4*sizeof(f32));
-  ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
-  
-  ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1,
-                                           &State->UBuffer);
-  
-  ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
-                                           &State->CurrentSprite.TextureView);
-  
-  ID3D11DeviceContext_DrawIndexed(State->Context, 6, 0, 0);
-}
-
-internal void
 D3D11DrawMesh(d3d11_state *State, shader_constants *Constants, platform_api *Platform)
 {
   D3D11_MAPPED_SUBRESOURCE Mapped;
@@ -382,7 +347,7 @@ D3D11DrawMesh(d3d11_state *State, shader_constants *Constants, platform_api *Pla
   ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
                                            &State->CurrentSprite.TextureView);
   
-  u32 Stride = sizeof(vertex_3d);
+  u32 Stride = sizeof(vertex);
   u32 Offset = 0;
   ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->CurrentMesh.VBuffer,
                                          &Stride, &Offset);
@@ -449,9 +414,9 @@ D3D11CreateShader_(ID3D11Device *Device, s8 *Name,
   
   D3D11_INPUT_ELEMENT_DESC Desc[] =
   {
-    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex_3d, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex_3d, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
-    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex_3d, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
+    { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
   };
   
   ID3D11InputLayout *Layout;
@@ -528,14 +493,14 @@ D3D11CreateSprite(d3d11_state *State,
 
 internal d3d11_mesh
 D3D11CreateMesh_(ID3D11Device *Device,
-                 vertex_3d *VData, u32 VDataLength,
+                 vertex *VData, u32 VDataLength,
                  u32 *IData, u32 IDataLength)
 {
   ID3D11Buffer *VBuffer;
   {
     D3D11_BUFFER_DESC Desc =
     {
-      .ByteWidth = sizeof(vertex_3d)*VDataLength,
+      .ByteWidth = sizeof(vertex)*VDataLength,
       .Usage = D3D11_USAGE_IMMUTABLE,
       .BindFlags = D3D11_BIND_VERTEX_BUFFER
     };
@@ -566,7 +531,7 @@ D3D11CreateMesh_(ID3D11Device *Device,
 
 internal d3d11_mesh
 D3D11CreateMesh(d3d11_state *State,
-                vertex_3d *VData, u32 VDataLength,
+                vertex *VData, u32 VDataLength,
                 u32 *IData, u32 IDataLength)
 {
   d3d11_mesh Mesh = D3D11CreateMesh_(State->Device,

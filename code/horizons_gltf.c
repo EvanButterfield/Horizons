@@ -217,17 +217,15 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
         Indices[IndiceIndex] = (u32)Indices16[IndiceIndex];
       }
       
-      vertex_3d *Vertex3Ds = PushArray(&State->PermArena, vertex_3d, VertexCount);
+      vertex *Vertex3Ds = PushArray(&State->PermArena, vertex, VertexCount);
       s32 VerticesScanIndex = 0;
       s32 UVsScanIndex = 0;
       for(s32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
       {
-        vertex_3d Vertex;
-        Platform->CopyMemory(Vertex.Position, Vertices + VerticesScanIndex, sizeof(f32)*3);
-        Platform->CopyMemory(Vertex.UV, UVs + UVsScanIndex, sizeof(f32)*2);
-        Vertex.Color[0] = 1;
-        Vertex.Color[1] = 1;
-        Vertex.Color[2] = 1;
+        vertex Vertex;
+        Platform->CopyMemory(Vertex.Position.Elements, Vertices + VerticesScanIndex, sizeof(vec3));
+        Platform->CopyMemory(Vertex.UV.Elements, UVs + UVsScanIndex, sizeof(vec2));
+        Vertex.Color = Vec3(1, 1, 1);
         
         Vertex3Ds[VertexIndex] = Vertex;
         

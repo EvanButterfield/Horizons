@@ -3,69 +3,6 @@
 #ifndef HORIZONS_MATH_H
 #define HORIZONS_MATH_H
 
-typedef union vec2
-{
-  struct
-  {
-    f32 x, y;
-  };
-  struct
-  {
-    f32 x_, z;
-  };
-  f32 Elements[2];
-} vec2;
-
-#define Vec2(x, y) (vec2){(x), (y)}
-
-typedef union vec3
-{
-  struct
-  {
-    f32 x, y, z;
-  };
-  struct
-  {
-    f32 r, g, b;
-  };
-  struct
-  {
-    f32 Pitch, Yaw, Roll;
-  };
-  f32 Elements[3];
-} vec3;
-
-#define Vec3(x, y, z) (vec3){(x), (y), (z)}
-
-typedef union vec4
-{
-  struct
-  {
-    f32 x, y, z, w;
-  };
-  struct
-  {
-    f32 r, g, b, a;
-  };
-  f32 Elements[4];
-} vec4;
-
-#define Vec4(x, y, z, w) (vec4){(x), (y), (z), (w)}
-
-typedef union mat3
-{
-  vec3 Rows[3];
-  f32 Elements[3][3];
-} mat3;
-
-typedef union mat4
-{
-  vec4 Rows[4];
-  f32 Elements[4][4];
-} mat4;
-
-#if !MATH_NO_FUNCS
-
 #include <math.h>
 
 // NOTE(evan): This exists because I don't want to
@@ -465,7 +402,5 @@ Mat4CreateTransform3D(vec3 Position, vec3 Rotation, vec3 Scale)
   
   return(Result);
 }
-
-#endif
 
 #endif //HORIZONS_MATH_H

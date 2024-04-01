@@ -149,19 +149,12 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[WARNING]: ", 11},
   { "[ERROR]:   ", 11} };
 
-typedef struct vertex_2d
+typedef struct vertex
 {
-  f32 Position[2];
-  f32 UV[2];
-  f32 Color[3];
-} vertex_2d;
-
-typedef struct vertex_3d
-{
-  f32 Position[3];
-  f32 UV[2];
-  f32 Color[3];
-} vertex_3d;
+  vec3 Position;
+  vec2 UV;
+  vec3 Color;
+} vertex;
 
 typedef void *platform_sprite;
 typedef void *platform_mesh;
@@ -170,8 +163,8 @@ typedef void *platform_shader;
 #pragma pack(push, 1)
 typedef struct shader_constants
 {
-  f32 Matrix[4][4];
-  f32 Color[4];
+  mat4 Matrix;
+  vec4 Color;
 } shader_constants;
 #pragma pack(pop)
 
@@ -217,10 +210,7 @@ typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 #define PLATFORM_SET_SPRITE(name) void name(platform_sprite Sprite)
 typedef PLATFORM_SET_SPRITE(platform_set_sprite);
 
-#define PLATFORM_DRAW_SPRITE(name) void name(f32 *Matrix)
-typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
-
-#define PLATFORM_CREATE_MESH(name) platform_mesh name(vertex_3d *Vertices, u32 VertexCount, u32 *Indices, u32 IndexCount)
+#define PLATFORM_CREATE_MESH(name) platform_mesh name(vertex *Vertices, u32 VertexCount, u32 *Indices, u32 IndexCount)
 typedef PLATFORM_CREATE_MESH(platform_create_mesh);
 
 #define PLATFORM_SET_MESH(name) void name(platform_mesh Mesh)
@@ -256,7 +246,6 @@ typedef struct platform_api
   
   platform_create_sprite *CreateSprite;
   platform_set_sprite *SetSprite;
-  platform_draw_sprite *DrawSprite;
   platform_create_mesh *CreateMesh;
   platform_set_mesh *SetMesh;
   platform_draw_mesh *DrawMesh;

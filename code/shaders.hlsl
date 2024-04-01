@@ -26,7 +26,6 @@ ps_input VS(vs_input Input)
 {
   ps_input Output;
   Output.Pos = mul(float4(Input.Pos, 1), Transform);
-  // Output.Pos.z = 1;
   Output.UV = Input.UV;
   Output.Color = float4(Input.Color, 1)*Color;
   

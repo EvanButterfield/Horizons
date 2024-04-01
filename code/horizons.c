@@ -105,8 +105,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   mat4 M = Mat4Mul(Transform, PrevM);
   
   shader_constants Constants;
-  Platform->CopyMemory(Constants.Matrix, M.Elements, sizeof(mat4));
-  Platform->CopyMemory(Constants.Color, State->CubeMeshes[0].Material->Color.Elements, sizeof(vec4));
+  Platform->CopyMemory(Constants.Matrix.Elements, M.Elements, sizeof(mat4));
+  Platform->CopyMemory(Constants.Color.Elements, State->CubeMeshes[0].Material->Color.Elements, sizeof(vec4));
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
   Platform->DrawMesh(&Constants);
   
@@ -115,8 +115,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
                                     Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135),
                                     Vec3(1, 1, 1));
   M = Mat4Mul(Transform, PrevM);
-  Platform->CopyMemory(Constants.Matrix, M.Elements, sizeof(mat4));
-  Platform->CopyMemory(Constants.Color, State->ConeMeshes[0].Material->Color.Elements, sizeof(vec4));
+  Platform->CopyMemory(Constants.Matrix.Elements, M.Elements, sizeof(mat4));
+  Platform->CopyMemory(Constants.Color.Elements, State->ConeMeshes[0].Material->Color.Elements, sizeof(vec4));
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
   Platform->DrawMesh(&Constants);
   

@@ -391,11 +391,6 @@ internal PLATFORM_SET_SHADER(Win32SetShader)
   D3D11SetShader(&GlobalState->D3D11State, *((d3d11_shader *)Shader));
 }
 
-internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
-{
-  D3D11DrawSprite(&GlobalState->D3D11State, Matrix, &GlobalState->Platform);
-}
-
 internal LRESULT CALLBACK
 Win32WindowProc(HWND Window,
                 UINT Message,
@@ -438,7 +433,6 @@ WinMain(HINSTANCE Instance,
     
     Platform.CreateSprite = Win32CreateSprite;
     Platform.SetSprite = Win32SetSprite;
-    Platform.DrawSprite = Win32DrawSprite;
     Platform.CreateMesh = Win32CreateMesh;
     Platform.SetMesh = Win32SetMesh;
     Platform.DrawMesh = Win32DrawMesh;

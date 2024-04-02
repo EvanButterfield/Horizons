@@ -101,15 +101,15 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   {
     vertex VData[] =
     {
-      { {-1, -1, -1}, {0, 1}, {1, 1, 1} },
-      { {1, -1, -1}, {1, 1}, {1, 1, 1} },
-      { {-1, 1, -1}, {0, 0}, {1, 1, 1} },
-      { {1, 1, -1}, {1, 0}, {1, 1, 1} },
+      { {-1, -1, -1}, {0, 0, 0}, {0, 1}, {1, 1, 1} },
+      { {1, -1, -1}, {0, 0, 0}, {1, 1}, {1, 1, 1} },
+      { {-1, 1, -1}, {0, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {1, 1, -1}, {0, 0, 0}, {1, 0}, {1, 1, 1} },
       
-      { {-1, -1, 1}, {0, 1}, {1, 1, 1} },
-      { {1, -1, 1}, {1, 1}, {1, 1, 1} },
-      { {-1, 1, 1}, {0, 0}, {1, 1, 1} },
-      { {1, 1, 1}, {1, 0}, {1, 1, 1} }
+      { {-1, -1, 1}, {0, 0, 0}, {0, 1}, {1, 1, 1} },
+      { {1, -1, 1}, {0, 0, 0}, {1, 1}, {1, 1, 1} },
+      { {-1, 1, 1}, {0, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {1, 1, 1}, {0, 0, 0}, {1, 0}, {1, 1, 1} }
     };
     
     u32 IData[] =
@@ -126,18 +126,30 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
                             IData, ArrayCount(IData));
   }
   
-  ID3D11Buffer *UBuffer;
+  ID3D11Buffer *VSConstantsBuffer;
   {
     D3D11_BUFFER_DESC Desc =
     {
-      // NOTE(evan): Basic shader has 1 4x4 matrix and a base color
-      .ByteWidth = (UINT)AlignTo(sizeof(shader_constants), 16),
+      .ByteWidth = (UINT)AlignTo(sizeof(vs_shader_constants), 16),
       .Usage = D3D11_USAGE_DYNAMIC,
       .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
       .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
     };
     
-    ID3D11Device_CreateBuffer(Device, &Desc, 0, &UBuffer);
+    ID3D11Device_CreateBuffer(Device, &Desc, 0, &VSConstantsBuffer);
+  }
+  
+  ID3D11Buffer *PSConstantsBuffer;
+  {
+    D3D11_BUFFER_DESC Desc =
+    {
+      .ByteWidth = (UINT)AlignTo(sizeof(ps_shader_constants), 16),
+      .Usage = D3D11_USAGE_DYNAMIC,
+      .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
+      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
+    };
+    
+    ID3D11Device_CreateBuffer(Device, &Desc, 0, &PSConstantsBuffer);
   }
   
   d3d11_shader Shader = D3D11CreateShader_(Device, "shader", TempArena, Platform);
@@ -211,7 +223,7 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   {
     D3D11_DEPTH_STENCIL_DESC Desc =
     {
-      .DepthEnable = FALSE,
+      .DepthEnable = TRUE,
       .DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL,
       .DepthFunc = D3D11_COMPARISON_LESS,
       .StencilEnable = FALSE,
@@ -235,7 +247,8 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
     .CurrentSprite = Sprite,
     .DefaultMesh = Mesh,
     .CurrentMesh = Mesh,
-    .UBuffer = UBuffer,
+    .VSConstantsBuffer = VSConstantsBuffer,
+    .PSConstantsBuffer = PSConstantsBuffer,
     .Sampler = Sampler,
     .BlendState = BlendState,
     .RasterizerState = RasterizerState,
@@ -333,17 +346,20 @@ D3D11StartFrame(d3d11_state *State)
 }
 
 internal void
-D3D11DrawMesh(d3d11_state *State, shader_constants *Constants, platform_api *Platform)
+D3D11DrawMesh(d3d11_state *State, vs_shader_constants *VSConstants, ps_shader_constants *PSConstants, platform_api *Platform)
 {
   D3D11_MAPPED_SUBRESOURCE Mapped;
-  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->UBuffer,
+  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->VSConstantsBuffer,
                           0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
-  Platform->CopyMemory(Mapped.pData, Constants, sizeof(shader_constants));
-  ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->UBuffer, 0);
-  
+  Platform->CopyMemory(Mapped.pData, VSConstants, sizeof(vs_shader_constants));
+  ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->VSConstantsBuffer, 0);
   ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1,
-                                           &State->UBuffer);
+                                           &State->VSConstantsBuffer);
   
+  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->PSConstantsBuffer, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+  Platform->CopyMemory(Mapped.pData, PSConstants, sizeof(ps_shader_constants));
+  ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->PSConstantsBuffer, 0);
+  ID3D11DeviceContext_PSSetConstantBuffers(State->Context, 1, 1, &State->PSConstantsBuffer);
   ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1,
                                            &State->CurrentSprite.TextureView);
   
@@ -415,6 +431,7 @@ D3D11CreateShader_(ID3D11Device *Device, s8 *Name,
   D3D11_INPUT_ELEMENT_DESC Desc[] =
   {
     { "POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Position), D3D11_INPUT_PER_VERTEX_DATA, 0 },
+    { "NORMAL", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Normal), D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT,    0, offsetof(vertex, UV),       D3D11_INPUT_PER_VERTEX_DATA, 0 },
     { "COLOR",    0, DXGI_FORMAT_R32G32B32_FLOAT, 0, offsetof(vertex, Color),    D3D11_INPUT_PER_VERTEX_DATA, 0 }
   };

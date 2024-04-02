@@ -33,7 +33,8 @@ typedef struct d3d11_state
   
   IDXGISwapChain1 *SwapChain;
   
-  ID3D11Buffer *UBuffer;
+  ID3D11Buffer *VSConstantsBuffer;
+  ID3D11Buffer *PSConstantsBuffer;
   
   d3d11_shader DefaultShader;
   d3d11_shader CurrentShader;

@@ -373,7 +373,7 @@ internal PLATFORM_SET_MESH(Win32SetMesh)
 
 internal PLATFORM_DRAW_MESH(Win32DrawMesh)
 {
-  D3D11DrawMesh(&GlobalState->D3D11State, Constants, &GlobalState->Platform);
+  D3D11DrawMesh(&GlobalState->D3D11State, VSConstants, PSConstants, &GlobalState->Platform);
 }
 
 internal PLATFORM_CREATE_SHADER(Win32CreateShader)

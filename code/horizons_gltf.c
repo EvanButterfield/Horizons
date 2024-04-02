@@ -196,6 +196,15 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       f32 *Vertices = PushArray(&State->TempArena, f32, VertexCount*3);
       Platform->CopyMemory(Vertices, Vertices_, sizeof(f32)*VertexCount*3);
       
+      struct json_value_s *NormalValue = JSONFindValue(AttributesObjectElement, String8Plain("NORMAL"));
+      s32 NormalAccessorIndex = JSONGetS32FromValue(NormalValue);
+      gltf_accessor NormalAccessor = Accessors[NormalAccessorIndex];
+      gltf_buffer_view NormalBufferView = BufferViews[NormalAccessor.BufferView];
+      f32 *Normals_ = (f32 *)(BinData + NormalBufferView.Offset);
+      s32 NormalCount = NormalAccessor.Count;
+      f32 *Normals = PushArray(&State->TempArena, f32, NormalCount*3);
+      Platform->CopyMemory(Normals, Normals_, sizeof(f32)*NormalCount*3);
+      
       struct json_value_s *Texcoord0Value = JSONFindValue(AttributesObjectElement, String8Plain("TEXCOORD_0"));
       s32 Texcoord0AccessorIndex = JSONGetS32FromValue(Texcoord0Value);
       gltf_accessor Texcoord0Accessor = Accessors[Texcoord0AccessorIndex];
@@ -219,17 +228,20 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       
       vertex *Vertex3Ds = PushArray(&State->PermArena, vertex, VertexCount);
       s32 VerticesScanIndex = 0;
+      s32 NormalsScanIndex = 0;
       s32 UVsScanIndex = 0;
       for(s32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
       {
         vertex Vertex;
         Platform->CopyMemory(Vertex.Position.Elements, Vertices + VerticesScanIndex, sizeof(vec3));
+        Platform->CopyMemory(Vertex.Normal.Elements, Normals + NormalsScanIndex, sizeof(vec3));
         Platform->CopyMemory(Vertex.UV.Elements, UVs + UVsScanIndex, sizeof(vec2));
         Vertex.Color = Vec3(1, 1, 1);
         
         Vertex3Ds[VertexIndex] = Vertex;
         
         VerticesScanIndex += 3;
+        NormalsScanIndex += 3;
         UVsScanIndex += 2;
       }
       

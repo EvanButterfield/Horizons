@@ -152,6 +152,7 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
 typedef struct vertex
 {
   vec3 Position;
+  vec3 Normal;
   vec2 UV;
   vec3 Color;
 } vertex;
@@ -161,11 +162,22 @@ typedef void *platform_mesh;
 typedef void *platform_shader;
 
 #pragma pack(push, 1)
-typedef struct shader_constants
+typedef struct vs_shader_constants
 {
   mat4 Matrix;
+  mat4 Transform;
   vec4 Color;
-} shader_constants;
+  mat3 Normal;
+} vs_shader_constants;
+#pragma pack(pop)
+
+#pragma pack(push, 1)
+typedef struct ps_shader_constants
+{
+  f32 AmbientStrength;
+  vec3 LightPosition;
+  vec3 LightColor;
+} ps_shader_constants;
 #pragma pack(pop)
 
 // TODO(evan): Create a metadata thing to generate this
@@ -216,7 +228,7 @@ typedef PLATFORM_CREATE_MESH(platform_create_mesh);
 #define PLATFORM_SET_MESH(name) void name(platform_mesh Mesh)
 typedef PLATFORM_SET_MESH(platform_set_mesh);
 
-#define PLATFORM_DRAW_MESH(name) void name(shader_constants *Constants)
+#define PLATFORM_DRAW_MESH(name) void name(vs_shader_constants *VSConstants, ps_shader_constants *PSConstants)
 typedef PLATFORM_DRAW_MESH(platform_draw_mesh);
 
 #define PLATFORM_CREATE_SHADER(name) platform_shader name(s8 *Name)

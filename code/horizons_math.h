@@ -199,6 +199,19 @@ Vec4MulParts(vec4 A, vec4 B)
   return(Result);
 }
 
+internal inline mat3
+Mat3FromMat4(mat4 *M)
+{
+  mat3 Result =
+  {
+    M->Rows[0].x, M->Rows[0].y, M->Rows[0].z,
+    M->Rows[1].x, M->Rows[1].y, M->Rows[1].z,
+    M->Rows[2].x, M->Rows[2].y, M->Rows[2].z,
+  };
+  
+  return(Result);
+}
+
 internal inline mat4
 Mat4Identity(void)
 {
@@ -233,6 +246,65 @@ Mat4Mul(mat4 A, mat4 B)
     A.Elements[3][0] * B.Elements[0][1] + A.Elements[3][1] * B.Elements[1][1] + A.Elements[3][2] * B.Elements[2][1] + A.Elements[3][3] * B.Elements[3][1],
     A.Elements[3][0] * B.Elements[0][2] + A.Elements[3][1] * B.Elements[1][2] + A.Elements[3][2] * B.Elements[2][2] + A.Elements[3][3] * B.Elements[3][2],
     A.Elements[3][0] * B.Elements[0][3] + A.Elements[3][1] * B.Elements[1][3] + A.Elements[3][2] * B.Elements[2][3] + A.Elements[3][3] * B.Elements[3][3],
+  };
+  
+  return(Result);
+}
+
+internal mat4
+Mat4Inverse(mat4 *M)
+{
+  f32 S[6];
+  S[0] = M->Elements[0][0]*M->Elements[1][1] - M->Elements[1][0]*M->Elements[0][1];
+  S[1] = M->Elements[0][0]*M->Elements[1][2] - M->Elements[1][0]*M->Elements[0][2];
+  S[2] = M->Elements[0][0]*M->Elements[1][3] - M->Elements[1][0]*M->Elements[0][3];
+  S[3] = M->Elements[0][1]*M->Elements[1][2] - M->Elements[1][1]*M->Elements[0][2];
+  S[4] = M->Elements[0][1]*M->Elements[1][3] - M->Elements[1][1]*M->Elements[0][3];
+  S[5] = M->Elements[0][2]*M->Elements[1][3] - M->Elements[1][2]*M->Elements[0][3];
+  
+  f32 C[6];
+  C[0] = M->Elements[2][0]*M->Elements[3][1] - M->Elements[3][0]*M->Elements[2][1];
+  C[1] = M->Elements[2][0]*M->Elements[3][2] - M->Elements[3][0]*M->Elements[2][2];
+  C[2] = M->Elements[2][0]*M->Elements[3][3] - M->Elements[3][0]*M->Elements[2][3];
+  C[3] = M->Elements[2][1]*M->Elements[3][2] - M->Elements[3][1]*M->Elements[2][2];
+  C[4] = M->Elements[2][1]*M->Elements[3][3] - M->Elements[3][1]*M->Elements[2][3];
+  C[5] = M->Elements[2][2]*M->Elements[3][3] - M->Elements[3][2]*M->Elements[2][3];
+  
+  f32 Idet = 1.0f/(S[0]*C[5] - S[1]*C[4] + S[2]*C[3] + S[3]*C[2] - S[4]*C[1] + S[5]*C[0]);
+  
+  mat4 Result;
+  Result.Elements[0][0] = ( M->Elements[1][1]*C[5] - M->Elements[1][2]*C[4] + M->Elements[1][3]*C[3])*Idet;
+  Result.Elements[0][1] = (-M->Elements[0][1]*C[5] + M->Elements[0][2]*C[4] - M->Elements[0][3]*C[3])*Idet;
+  Result.Elements[0][2] = ( M->Elements[3][1]*S[5] - M->Elements[3][2]*S[4] + M->Elements[3][3]*S[3])*Idet;
+  Result.Elements[0][3] = (-M->Elements[2][1]*S[5] + M->Elements[2][2]*S[4] - M->Elements[2][3]*S[3])*Idet;
+  
+  Result.Elements[1][0] = (-M->Elements[1][0]*C[5] + M->Elements[1][2]*C[2] - M->Elements[1][3]*C[1])*Idet;
+  Result.Elements[1][1] = ( M->Elements[0][0]*C[5] - M->Elements[0][2]*C[2] + M->Elements[0][3]*C[1])*Idet;
+  Result.Elements[1][2] = (-M->Elements[3][0]*S[5] + M->Elements[3][2]*S[2] - M->Elements[3][3]*S[1])*Idet;
+  Result.Elements[1][3] = ( M->Elements[2][0]*S[5] - M->Elements[2][2]*S[2] + M->Elements[2][3]*S[1])*Idet;
+  
+  Result.Elements[2][0] = ( M->Elements[1][0]*C[4] - M->Elements[1][1]*C[2] + M->Elements[1][3]*C[0])*Idet;
+  Result.Elements[2][1] = (-M->Elements[0][0]*C[4] + M->Elements[0][1]*C[2] - M->Elements[0][3]*C[0])*Idet;
+  Result.Elements[2][2] = ( M->Elements[3][0]*S[4] - M->Elements[3][1]*S[2] + M->Elements[3][3]*S[0])*Idet;
+  Result.Elements[2][3] = (-M->Elements[2][0]*S[4] + M->Elements[2][1]*S[2] - M->Elements[2][3]*S[0])*Idet;
+  
+  Result.Elements[3][0] = (-M->Elements[1][0]*C[3] + M->Elements[1][1]*C[1] - M->Elements[1][2]*C[0])*Idet;
+  Result.Elements[3][1] = ( M->Elements[0][0]*C[3] - M->Elements[0][1]*C[1] + M->Elements[0][2]*C[0])*Idet;
+  Result.Elements[3][2] = (-M->Elements[3][0]*S[3] + M->Elements[3][1]*S[1] - M->Elements[3][2]*S[0])*Idet;
+  Result.Elements[3][3] = ( M->Elements[2][0]*S[3] - M->Elements[2][1]*S[1] + M->Elements[2][2]*S[0])*Idet;
+  
+  return(Result);
+}
+
+internal mat4
+Mat4Transpose(mat4 *M)
+{
+  mat4 Result =
+  {
+    M->Rows[0].x, M->Rows[1].x, M->Rows[2].x, M->Rows[3].x,
+    M->Rows[0].y, M->Rows[1].y, M->Rows[2].y, M->Rows[3].y,
+    M->Rows[0].z, M->Rows[1].z, M->Rows[2].z, M->Rows[3].z,
+    M->Rows[0].w, M->Rows[1].w, M->Rows[2].w, M->Rows[3].w
   };
   
   return(Result);

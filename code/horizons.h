@@ -26,6 +26,8 @@ typedef struct game_state
   memory_arena TempArena;
   game_input LastInput;
   
+  f32 Time;
+  
   vec3 CameraPosition;
   vec3 CameraRotation;
   vec3 CameraFront;

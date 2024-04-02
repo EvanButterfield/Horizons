@@ -7,6 +7,30 @@ global platform_api *Platform;
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
+internal void
+DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, f32 AmbientStrength, vec3 LightPosition, vec3 LightColor, mat4 PrevM, game_material *Material)
+{
+  mat4 Transform = Mat4CreateTransform3D(Position, Rotation, Scale);
+  mat4 M = Mat4Mul(Transform, PrevM);
+  
+  mat4 Normal4 = Mat4Inverse(&Transform);
+  Normal4 = Mat4Transpose(&Normal4);
+  mat3 Normal = Mat3FromMat4(&Normal4);
+  
+  vs_shader_constants VSConstants;
+  Platform->CopyMemory(VSConstants.Matrix.Elements, M.Elements, sizeof(mat4));
+  Platform->CopyMemory(VSConstants.Transform.Elements, Transform.Elements, sizeof(mat4));
+  Platform->CopyMemory(VSConstants.Color.Elements, Material->Color.Elements, sizeof(vec4));
+  Platform->CopyMemory(VSConstants.Normal.Elements, Normal.Elements, sizeof(mat3));
+  
+  ps_shader_constants PSConstants;
+  PSConstants.AmbientStrength = AmbientStrength;
+  Platform->CopyMemory(PSConstants.LightPosition.Elements, LightPosition.Elements, sizeof(vec3));
+  Platform->CopyMemory(PSConstants.LightColor.Elements, LightColor.Elements, sizeof(vec3));
+  
+  Platform->DrawMesh(&VSConstants, &PSConstants);
+}
+
 GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
 {
   State = (game_state *)Memory->PermanentStorage;
@@ -16,6 +40,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     InitializeArena(&State->PermArena, (u8 *)Memory->PermanentStorage + sizeof(game_state),
                     Memory->PermanentStorageSize - sizeof(game_state));
     InitializeArena(&State->TempArena, (u8 *)Memory->TempStorage, Memory->TempStorageSize);
+    
+    State->Time = 0;
     
     State->CameraPosition = Vec3(0, 0, 5);
     State->CameraRotation = Vec3(0, 90, 0);
@@ -32,6 +58,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->TempArena.Used = 0;
     State->Initialized = true;
   }
+  
+  State->Time += DeltaTime;
   
   if(Input->Keyboard.E && !State->LastInput.Keyboard.E)
   {
@@ -99,26 +127,20 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   mat4 Perspective = Mat4Perspective(Aspect, 60, 0.01f, 100);
   mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
-  mat4 Transform = Mat4CreateTransform3D(Vec3(0, 0, 0),
-                                         Vec3(0, 0, 0),
-                                         Vec3(1, 1, 1));
-  mat4 M = Mat4Mul(Transform, PrevM);
   
-  shader_constants Constants;
-  Platform->CopyMemory(Constants.Matrix.Elements, M.Elements, sizeof(mat4));
-  Platform->CopyMemory(Constants.Color.Elements, State->CubeMeshes[0].Material->Color.Elements, sizeof(vec4));
+  f32 AmbientStrength = .1f;
+  f32 X = sinf(State->Time)*5;
+  vec3 LightPosition = Vec3(X, 2, 0);
+  vec3 LightColor = Vec3(1, 0, 1);
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  Platform->DrawMesh(&Constants);
+  DrawMesh(LightPosition, Vec3(0, 0, 0), Vec3(.2f, .2f, .2f), AmbientStrength, LightPosition, LightColor, PrevM, State->CubeMeshes[0].Material);
+  
+  Platform->SetMesh(State->CubeMeshes[0].Mesh);
+  DrawMesh(Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), AmbientStrength, LightPosition, LightColor, PrevM, State->CubeMeshes[0].Material);
   
   State->CubeRot += 30*DeltaTime;
-  Transform = Mat4CreateTransform3D(Vec3(5, 0, 0),
-                                    Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135),
-                                    Vec3(1, 1, 1));
-  M = Mat4Mul(Transform, PrevM);
-  Platform->CopyMemory(Constants.Matrix.Elements, M.Elements, sizeof(mat4));
-  Platform->CopyMemory(Constants.Color.Elements, State->ConeMeshes[0].Material->Color.Elements, sizeof(vec4));
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  Platform->DrawMesh(&Constants);
+  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightPosition, LightColor, PrevM, State->ConeMeshes[0].Material);
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

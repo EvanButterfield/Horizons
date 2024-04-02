@@ -16,7 +16,6 @@
 #undef COMPILER_MSVC
 #define COMPILER_MSVC 1
 #else
-// TODO(evan): More compilers!
 #undef COMPILER_LLVM
 #define COMPILER_LLVM
 #endif
@@ -88,6 +87,7 @@ typedef struct string8
 #define String8(Str, Length) (string8){(Str), (Length)}
 #define String8Plain(Str) (string8){(Str), ArrayCount(Str) - 1}
 
+#pragma pack(push, 1)
 typedef union vec2
 {
   struct
@@ -148,6 +148,7 @@ typedef union mat4
   vec4 Rows[4];
   f32 Elements[4][4];
 } mat4;
+#pragma pack(pop)
 
 internal inline u32
 SafeTruncateUInt64(u64 Value)

@@ -38,8 +38,10 @@ ps_input VS(vs_input Input)
 cbuffer cbuffer1 : register(b1)
 {
   float AmbientStrength;
-  float3 LightPosition;
+  float3 LightDirection;
   float3 LightColor;
+  float Padding;
+  float3 CameraPosition;
 }
 
 sampler sampler0 : register(s0);
@@ -48,14 +50,16 @@ Texture2D<float4> texture0 : register(t0);
 
 float4 PS(ps_input Input) : SV_TARGET
 {
-  float3 Ambient = AmbientStrength*LightColor;
+  float3 RealLightDirection = normalize(-LightDirection);
+  float Diff = max(dot(Input.Normal, LightDirection), 0);
+  float3 Diffuse = LightColor*Diff;
   
-  float3 Normal = normalize(Input.Normal);
-  float3 LightDirection = normalize(LightPosition - Input.FragPosition);
-  float Diff = max(dot(Normal, LightDirection), 0);
-  float3 Diffuse = Diff*LightColor;
+  float3 Ambient = LightColor*AmbientStrength;
+  float3 Light = Diffuse + Ambient;
+  
+  float3 ViewDirection = normalize(CameraPosition - Input.FragPosition);
   
   float4 Tex = texture0.Sample(sampler0, Input.UV);
-  float4 Result = Input.Color * Tex * float4(Ambient + Diffuse, 1);
+  float4 Result = Input.Color * Tex * float4(Light, 1);
   return Result;
 }

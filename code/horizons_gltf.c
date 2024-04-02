@@ -191,28 +191,28 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       s32 PositionAccessorIndex = JSONGetS32FromValue(PositionValue);
       gltf_accessor PositionAccessor = Accessors[PositionAccessorIndex];
       gltf_buffer_view PositionBufferView = BufferViews[PositionAccessor.BufferView];
-      f32 *Vertices_ = (f32 *)(BinData + PositionBufferView.Offset);
-      s32 VertexCount = PositionAccessor.Count;
-      f32 *Vertices = PushArray(&State->TempArena, f32, VertexCount*3);
-      Platform->CopyMemory(Vertices, Vertices_, sizeof(f32)*VertexCount*3);
+      f32 *Positions_ = (f32 *)(BinData + PositionBufferView.Offset);
+      s32 PositionCount = PositionAccessor.Count*3;
+      f32 *Positions = PushArray(&State->TempArena, f32, PositionCount);
+      Platform->CopyMemory(Positions, Positions_, sizeof(f32)*PositionCount);
       
       struct json_value_s *NormalValue = JSONFindValue(AttributesObjectElement, String8Plain("NORMAL"));
       s32 NormalAccessorIndex = JSONGetS32FromValue(NormalValue);
       gltf_accessor NormalAccessor = Accessors[NormalAccessorIndex];
       gltf_buffer_view NormalBufferView = BufferViews[NormalAccessor.BufferView];
       f32 *Normals_ = (f32 *)(BinData + NormalBufferView.Offset);
-      s32 NormalCount = NormalAccessor.Count;
-      f32 *Normals = PushArray(&State->TempArena, f32, NormalCount*3);
-      Platform->CopyMemory(Normals, Normals_, sizeof(f32)*NormalCount*3);
+      s32 NormalCount = NormalAccessor.Count*3;
+      f32 *Normals = PushArray(&State->TempArena, f32, NormalCount);
+      Platform->CopyMemory(Normals, Normals_, sizeof(f32)*NormalCount);
       
       struct json_value_s *Texcoord0Value = JSONFindValue(AttributesObjectElement, String8Plain("TEXCOORD_0"));
       s32 Texcoord0AccessorIndex = JSONGetS32FromValue(Texcoord0Value);
       gltf_accessor Texcoord0Accessor = Accessors[Texcoord0AccessorIndex];
       gltf_buffer_view Texcoord0BufferView = BufferViews[Texcoord0Accessor.BufferView];
       f32 *UVs_ = (f32 *)(BinData + Texcoord0BufferView.Offset);
-      s32 UVCount = Texcoord0Accessor.Count;
-      f32 *UVs = PushArray(&State->TempArena, f32, UVCount*2);
-      Platform->CopyMemory(UVs, UVs_, sizeof(f32)*UVCount*2);
+      s32 UVCount = Texcoord0Accessor.Count*2;
+      f32 *UVs = PushArray(&State->TempArena, f32, UVCount);
+      Platform->CopyMemory(UVs, UVs_, sizeof(f32)*UVCount);
       
       struct json_value_s *IndicesValue = JSONFindValue(PrimitiveObjectElement, String8Plain("indices"));
       s32 IndicesAccessorIndex = JSONGetS32FromValue(IndicesValue);
@@ -226,26 +226,27 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
         Indices[IndiceIndex] = (u32)Indices16[IndiceIndex];
       }
       
-      vertex *Vertex3Ds = PushArray(&State->PermArena, vertex, VertexCount);
-      s32 VerticesScanIndex = 0;
+      s32 VertexCount = PositionCount/3;
+      vertex *Vertices = PushArray(&State->PermArena, vertex, VertexCount);
+      s32 PositionsScanIndex = 0;
       s32 NormalsScanIndex = 0;
       s32 UVsScanIndex = 0;
       for(s32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
       {
         vertex Vertex;
-        Platform->CopyMemory(Vertex.Position.Elements, Vertices + VerticesScanIndex, sizeof(vec3));
+        Platform->CopyMemory(Vertex.Position.Elements, Positions + PositionsScanIndex, sizeof(vec3));
         Platform->CopyMemory(Vertex.Normal.Elements, Normals + NormalsScanIndex, sizeof(vec3));
         Platform->CopyMemory(Vertex.UV.Elements, UVs + UVsScanIndex, sizeof(vec2));
         Vertex.Color = Vec3(1, 1, 1);
         
-        Vertex3Ds[VertexIndex] = Vertex;
+        Vertices[VertexIndex] = Vertex;
         
-        VerticesScanIndex += 3;
+        PositionsScanIndex += 3;
         NormalsScanIndex += 3;
         UVsScanIndex += 2;
       }
       
-      platform_mesh PlatformMesh = Platform->CreateMesh(Vertex3Ds, VertexCount, Indices, IndexCount);
+      platform_mesh PlatformMesh = Platform->CreateMesh(Vertices, VertexCount, Indices, IndexCount);
       
       struct json_value_s *MaterialValue = JSONFindValue(PrimitiveObjectElement, String8Plain("material"));
       s32 MaterialIndex = JSONGetS32FromValue(MaterialValue);
@@ -256,7 +257,7 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       Mesh.Material = Material;
       Meshes[MeshIndex] = Mesh;
       
-      PopArray(&State->TempArena, f32, VertexCount + UVCount);
+      PopArray(&State->TempArena, f32, PositionCount + UVCount);
       MeshElement = MeshElement->next;
     }
   }

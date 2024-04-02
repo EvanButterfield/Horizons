@@ -175,8 +175,10 @@ typedef struct vs_shader_constants
 typedef struct ps_shader_constants
 {
   f32 AmbientStrength;
-  vec3 LightPosition;
+  vec3 LightDirection;
   vec3 LightColor;
+  float Padding;
+  vec3 CameraPosition;
 } ps_shader_constants;
 #pragma pack(pop)
 

@@ -7,8 +7,9 @@ global platform_api *Platform;
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
+// TODO(evan): Put the light information in state
 internal void
-DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, f32 AmbientStrength, vec3 LightPosition, vec3 LightColor, mat4 PrevM, game_material *Material)
+DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, f32 AmbientStrength, vec3 LightDirection, vec3 LightColor, mat4 PrevM, game_material *Material)
 {
   mat4 Transform = Mat4CreateTransform3D(Position, Rotation, Scale);
   mat4 M = Mat4Mul(Transform, PrevM);
@@ -25,8 +26,9 @@ DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, f32 AmbientStrength, vec3 Lig
   
   ps_shader_constants PSConstants;
   PSConstants.AmbientStrength = AmbientStrength;
-  Platform->CopyMemory(PSConstants.LightPosition.Elements, LightPosition.Elements, sizeof(vec3));
+  Platform->CopyMemory(PSConstants.LightDirection.Elements, LightDirection.Elements, sizeof(vec3));
   Platform->CopyMemory(PSConstants.LightColor.Elements, LightColor.Elements, sizeof(vec3));
+  Platform->CopyMemory(PSConstants.CameraPosition.Elements, State->CameraPosition.Elements, sizeof(vec3));
   
   Platform->DrawMesh(&VSConstants, &PSConstants);
 }
@@ -129,18 +131,15 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   mat4 PrevM = Mat4Mul(View, Perspective);
   
   f32 AmbientStrength = .1f;
-  f32 X = sinf(State->Time)*5;
-  vec3 LightPosition = Vec3(X, 2, 0);
-  vec3 LightColor = Vec3(1, 0, 1);
-  Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  DrawMesh(LightPosition, Vec3(0, 0, 0), Vec3(.2f, .2f, .2f), AmbientStrength, LightPosition, LightColor, PrevM, State->CubeMeshes[0].Material);
-  
-  Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  DrawMesh(Vec3(0, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), AmbientStrength, LightPosition, LightColor, PrevM, State->CubeMeshes[0].Material);
+  vec3 LightDirection = Vec3(-.2f, -1, -.3f);
+  vec3 LightColor = Vec3(.3f, .3f, .3f);
   
   State->CubeRot += 30*DeltaTime;
+  Platform->SetMesh(State->CubeMeshes[0].Mesh);
+  DrawMesh(Vec3(0, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightDirection, LightColor, PrevM, State->CubeMeshes[0].Material);
+  
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightPosition, LightColor, PrevM, State->ConeMeshes[0].Material);
+  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightDirection, LightColor, PrevM, State->ConeMeshes[0].Material);
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

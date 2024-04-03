@@ -7,7 +7,7 @@ set PSOptions=/T ps_5_0 /E PS
 set Options=/Ges /nologo /Od /WX /Zi /Zpr
 
 echo "Compiling New Horizons shaders"
-del *.fxc
+del *.fxc > NUL 2>&1
 fxc %VSOptions% /Fo shader_vs.fxc %Options% w:\new-horizons\code\shaders.hlsl
 fxc %PSOptions% /Fo shader_ps.fxc %Options% w:\new-horizons\code\shaders.hlsl
 echo "Done compiling New Horizons shaders"

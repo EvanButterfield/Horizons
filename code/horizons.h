@@ -16,6 +16,8 @@ typedef struct game_material
 typedef struct game_mesh
 {
   platform_mesh Mesh;
+  vec3 *CollisionPositions;
+  s32 CollisionPositionCount;
   game_material *Material;
 } game_mesh;
 
@@ -33,7 +35,13 @@ typedef struct game_state
   vec3 CameraFront;
   vec3 CameraUp;
   
+  f32 AmbientStrength;
+  vec3 LightDirection;
+  vec3 LightColor;
+  
   b32 ControllingCharacter;
+  
+  b32 Rotating;
   
   game_mesh *CubeMeshes;
   game_mesh *ConeMeshes;

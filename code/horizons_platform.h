@@ -167,18 +167,13 @@ typedef struct vs_shader_constants
   mat4 Matrix;
   mat4 Transform;
   vec4 Color;
-  mat3 Normal;
 } vs_shader_constants;
-#pragma pack(pop)
 
-#pragma pack(push, 1)
 typedef struct ps_shader_constants
 {
   f32 AmbientStrength;
   vec3 LightDirection;
   vec3 LightColor;
-  float Padding;
-  vec3 CameraPosition;
 } ps_shader_constants;
 #pragma pack(pop)
 

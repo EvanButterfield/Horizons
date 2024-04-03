@@ -228,9 +228,15 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       
       s32 VertexCount = PositionCount/3;
       vertex *Vertices = PushArray(&State->PermArena, vertex, VertexCount);
+      
+      // NOTE: glTF stores the same position for 3 vertices for normal accuracy
+      s32 CollisionPositionCount = VertexCount/3;
+      vec3 *CollisionPositions = PushArray(&State->PermArena, vec3, CollisionPositionCount);
+      
       s32 PositionsScanIndex = 0;
       s32 NormalsScanIndex = 0;
       s32 UVsScanIndex = 0;
+      s32 CollisionPositionIndex = 0;
       for(s32 VertexIndex = 0; VertexIndex < VertexCount; ++VertexIndex)
       {
         vertex Vertex;
@@ -240,6 +246,12 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
         Vertex.Color = Vec3(1, 1, 1);
         
         Vertices[VertexIndex] = Vertex;
+        
+        if((VertexIndex + 1) % 3 == 0)
+        {
+          Platform->CopyMemory(&CollisionPositions[CollisionPositionIndex], Vertex.Position.Elements, sizeof(vec3));
+          ++CollisionPositionIndex;
+        }
         
         PositionsScanIndex += 3;
         NormalsScanIndex += 3;
@@ -254,6 +266,8 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       
       game_mesh Mesh;
       Mesh.Mesh = PlatformMesh;
+      Mesh.CollisionPositions = CollisionPositions;
+      Mesh.CollisionPositionCount = CollisionPositionCount;
       Mesh.Material = Material;
       Meshes[MeshIndex] = Mesh;
       

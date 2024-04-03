@@ -7,28 +7,21 @@ global platform_api *Platform;
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
-// TODO(evan): Put the light information in state
 internal void
-DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, f32 AmbientStrength, vec3 LightDirection, vec3 LightColor, mat4 PrevM, game_material *Material)
+DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, game_material *Material)
 {
   mat4 Transform = Mat4CreateTransform3D(Position, Rotation, Scale);
   mat4 M = Mat4Mul(Transform, PrevM);
   
-  mat4 Normal4 = Mat4Inverse(&Transform);
-  Normal4 = Mat4Transpose(&Normal4);
-  mat3 Normal = Mat3FromMat4(&Normal4);
-  
   vs_shader_constants VSConstants;
-  Platform->CopyMemory(VSConstants.Matrix.Elements, M.Elements, sizeof(mat4));
-  Platform->CopyMemory(VSConstants.Transform.Elements, Transform.Elements, sizeof(mat4));
-  Platform->CopyMemory(VSConstants.Color.Elements, Material->Color.Elements, sizeof(vec4));
-  Platform->CopyMemory(VSConstants.Normal.Elements, Normal.Elements, sizeof(mat3));
+  VSConstants.Matrix = M;
+  VSConstants.Transform = Transform;
+  VSConstants.Color = Material->Color;
   
   ps_shader_constants PSConstants;
-  PSConstants.AmbientStrength = AmbientStrength;
-  Platform->CopyMemory(PSConstants.LightDirection.Elements, LightDirection.Elements, sizeof(vec3));
-  Platform->CopyMemory(PSConstants.LightColor.Elements, LightColor.Elements, sizeof(vec3));
-  Platform->CopyMemory(PSConstants.CameraPosition.Elements, State->CameraPosition.Elements, sizeof(vec3));
+  PSConstants.AmbientStrength = State->AmbientStrength;
+  PSConstants.LightDirection = State->LightDirection;
+  PSConstants.LightColor = State->LightColor;
   
   Platform->DrawMesh(&VSConstants, &PSConstants);
 }
@@ -50,12 +43,18 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CameraFront = Vec3(0, 0, 0);
     State->CameraUp = Vec3(0, 1, 0);
     
+    State->AmbientStrength = .1f;
+    State->LightDirection = Vec3(-.2f, -1, -.3f);
+    State->LightColor = Vec3(.3f, .3f, .3f);
+    
     State->ControllingCharacter = false;
     
     State->CubeRot = 0;
     
     LoadGLTF("cube.gltf", &State->CubeMeshes);
     LoadGLTF("cone.gltf", &State->ConeMeshes);
+    
+    State->Rotating = false;
     
     State->TempArena.Used = 0;
     State->Initialized = true;
@@ -66,6 +65,11 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   if(Input->Keyboard.E && !State->LastInput.Keyboard.E)
   {
     State->ControllingCharacter = !State->ControllingCharacter;
+  }
+  
+  if(Input->Keyboard.Q && !State->LastInput.Keyboard.Q)
+  {
+    State->Rotating = !State->Rotating;
   }
   
   State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
@@ -130,16 +134,16 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
   
-  f32 AmbientStrength = .1f;
-  vec3 LightDirection = Vec3(-.2f, -1, -.3f);
-  vec3 LightColor = Vec3(.3f, .3f, .3f);
+  if(State->Rotating)
+  {
+    State->CubeRot += 30*DeltaTime;
+  }
   
-  State->CubeRot += 30*DeltaTime;
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  DrawMesh(Vec3(0, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightDirection, LightColor, PrevM, State->CubeMeshes[0].Material);
+  DrawMesh(Vec3(0, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM, State->CubeMeshes[0].Material);
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot, State->CubeRot + 135), Vec3(1, 1, 1), AmbientStrength, LightDirection, LightColor, PrevM, State->ConeMeshes[0].Material);
+  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot + 45, State->CubeRot + 45), Vec3(1, 1, 1), PrevM, State->ConeMeshes[0].Material);
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

@@ -7,6 +7,18 @@ global platform_api *Platform;
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
+internal void
+AddCollider(game_aabb Collider)
+{
+  if(State->NumColliders >= MAX_COLLIDERS)
+  {
+    Platform->LogMessagePlain("Too many colliders\n", true, MESSAGE_SEVERITY_WARNING);
+    return;
+  }
+  
+  State->Colliders[State->NumColliders++] = Collider;
+}
+
 internal game_aabb
 DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
 {
@@ -37,23 +49,40 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
     Pos.w = 1;
     
     vec4 NewPos = Vec4MulMat4(Pos, &Transform);
-    TransCollisionPositions[CollisionPositionIndex] = NewPos.xyz;
+    vec3 ResultPos = Vec3Add(NewPos.xyz, Position);
+    TransCollisionPositions[CollisionPositionIndex] = ResultPos;
   }
   
-  game_aabb Result = {0};
-  for(s32 CollisionPositionIndex = 0;
+  game_aabb Result = {TransCollisionPositions[0], TransCollisionPositions[0]};
+  for(s32 CollisionPositionIndex = 1;
       CollisionPositionIndex < Mesh->CollisionPositionCount;
       ++CollisionPositionIndex)
   {
     vec3 Point = TransCollisionPositions[CollisionPositionIndex];
-    if(Vec3GreaterThan(Point, Result.Max))
+    if(Point.x > Result.Max.x)
     {
-      Result.Max = Point;
-      continue;
+      Result.Max.x = Point.x;
     }
-    if(Vec3LessThan(Point, Result.Min))
+    else if(Point.y > Result.Max.y)
     {
-      Result.Min = Point;
+      Result.Max.y = Point.y;
+    }
+    else if(Point.z > Result.Max.z)
+    {
+      Result.Max.z = Point.z;
+    }
+    
+    if(Point.x < Result.Min.x)
+    {
+      Result.Min.x = Point.x;
+    }
+    else if(Point.y < Result.Min.y)
+    {
+      Result.Min.y = Point.y;
+    }
+    else if(Point.z < Result.Min.z)
+    {
+      Result.Min.z = Point.z;
     }
   }
   PopArray(&State->TempArena, vec3, Mesh->CollisionPositionCount);
@@ -184,61 +213,69 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   }
   
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  game_aabb CubeAABB = DrawMesh(State->CubeMeshes, Vec3(0, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM);
+  AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM));
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot + 45, State->CubeRot + 45), Vec3(1, 1, 1), PrevM);
+  AddCollider(DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), PrevM));
   
-  if(State->CameraPosition.x >= CubeAABB.Min.x &&
-     State->CameraPosition.x <= CubeAABB.Max.x &&
-     State->CameraPosition.y >= CubeAABB.Min.y &&
-     State->CameraPosition.y <= CubeAABB.Max.y &&
-     State->CameraPosition.z >= CubeAABB.Min.z &&
-     State->CameraPosition.z <= CubeAABB.Max.z)
+  for(s32 ColliderIndex = 0;
+      ColliderIndex < State->NumColliders;
+      ++ColliderIndex)
   {
-    vec3 RawDist = Vec3Subtract(State->CameraPosition, CubeAABB.MidPoint);
-    vec3 Dist = Vec3((f32)fabs(RawDist.x), (f32)fabs(RawDist.y), (f32)fabs(RawDist.z));
-    if(Dist.x >= Dist.y && Dist.x >= Dist.z)
+    game_aabb Collider = State->Colliders[ColliderIndex];
+    
+    if(State->CameraPosition.x >= Collider.Min.x &&
+       State->CameraPosition.x <= Collider.Max.x &&
+       State->CameraPosition.y >= Collider.Min.y &&
+       State->CameraPosition.y <= Collider.Max.y &&
+       State->CameraPosition.z >= Collider.Min.z &&
+       State->CameraPosition.z <= Collider.Max.z)
     {
-      if(RawDist.x < 0)
+      vec3 RawDist = Vec3Subtract(State->CameraPosition, Collider.MidPoint);
+      vec3 Dist = Vec3((f32)fabs(RawDist.x), (f32)fabs(RawDist.y), (f32)fabs(RawDist.z));
+      if(Dist.x >= Dist.y && Dist.x >= Dist.z)
       {
-        // Positive X Coll
-        State->CameraPosition.x = CubeAABB.Min.x;
+        if(RawDist.x < 0)
+        {
+          // Positive X Coll
+          State->CameraPosition.x = Collider.Min.x;
+        }
+        else
+        {
+          // Negative X Coll
+          State->CameraPosition.x = Collider.Max.x;
+        }
+      }
+      else if(Dist.y >= Dist.x && Dist.y >= Dist.z)
+      {
+        if(RawDist.y < 0)
+        {
+          // Positive Y Coll
+          State->CameraPosition.y = Collider.Min.y;
+        }
+        else
+        {
+          // Negative Y Coll
+          State->CameraPosition.y = Collider.Max.y;
+        }
       }
       else
       {
-        // Negative X Coll
-        State->CameraPosition.x = CubeAABB.Max.x;
-      }
-    }
-    else if(Dist.y >= Dist.x && Dist.y >= Dist.z)
-    {
-      if(RawDist.y < 0)
-      {
-        // Positive Y Coll
-        State->CameraPosition.y = CubeAABB.Min.y;
-      }
-      else
-      {
-        // Negative Y Coll
-        State->CameraPosition.y = CubeAABB.Max.y;
-      }
-    }
-    else
-    {
-      if(RawDist.z > 0)
-      {
-        // Positive Z Coll
-        State->CameraPosition.z = CubeAABB.Max.z;
-      }
-      else
-      {
-        // Negative Z Coll
-        State->CameraPosition.z = CubeAABB.Min.z;
+        if(RawDist.z > 0)
+        {
+          // Positive Z Coll
+          State->CameraPosition.z = Collider.Max.z;
+        }
+        else
+        {
+          // Negative Z Coll
+          State->CameraPosition.z = Collider.Min.z;
+        }
       }
     }
   }
   
+  State->NumColliders = 0;
   State->LastInput = *Input;
   State->TempArena.Used = 0;
   return(Input->Keyboard.Escape);

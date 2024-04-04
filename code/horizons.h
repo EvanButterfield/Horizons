@@ -28,6 +28,7 @@ typedef struct game_aabb
   vec3 MidPoint;
 } game_aabb;
 
+#define MAX_COLLIDERS 32
 typedef struct game_state
 {
   b32 Initialized;
@@ -53,6 +54,9 @@ typedef struct game_state
   game_mesh *CubeMeshes;
   game_mesh *ConeMeshes;
   f32 CubeRot;
+  
+  game_aabb Colliders[MAX_COLLIDERS];
+  s32 NumColliders;
 } game_state;
 
 #endif //HORIZONS_H

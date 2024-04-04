@@ -21,6 +21,13 @@ typedef struct game_mesh
   game_material *Material;
 } game_mesh;
 
+typedef struct game_aabb
+{
+  vec3 Max;
+  vec3 Min;
+  vec3 MidPoint;
+} game_aabb;
+
 typedef struct game_state
 {
   b32 Initialized;

@@ -113,6 +113,17 @@ Vec3Scale(vec3 A, f32 B)
   return(Result);
 }
 
+internal inline vec3
+Vec3Mul(vec3 A, vec3 B)
+{
+  vec3 Result;
+  Result.x = A.x*B.x;
+  Result.y = A.y*B.y;
+  Result.z = A.z*B.z;
+  
+  return(Result);
+}
+
 internal inline f32
 Vec3MulDot(vec3 A, vec3 B)
 {
@@ -188,13 +199,25 @@ Vec4Scale(vec4 A, f32 B)
 }
 
 internal inline vec4
-Vec4MulParts(vec4 A, vec4 B)
+Vec4Mul(vec4 A, vec4 B)
 {
   vec4 Result;
   Result.x = A.x*B.x;
   Result.y = A.y*B.y;
   Result.z = A.z*B.z;
   Result.w = A.w*B.w;
+  
+  return(Result);
+}
+
+internal vec4
+Vec4MulMat4(vec4 V, mat4 *M)
+{
+  vec4 Result;
+  Result.x = V.x*M->Elements[0][0] + V.y*M->Elements[0][1] + V.z*M->Elements[0][2] + V.w*M->Elements[0][3];
+  Result.y = V.x*M->Elements[1][0] + V.y*M->Elements[1][1] + V.z*M->Elements[1][2] + V.w*M->Elements[1][3];
+  Result.z = V.x*M->Elements[2][0] + V.y*M->Elements[2][1] + V.z*M->Elements[2][2] + V.w*M->Elements[2][3];
+  Result.w = V.x*M->Elements[3][0] + V.y*M->Elements[3][1] + V.z*M->Elements[3][2] + V.w*M->Elements[3][3];
   
   return(Result);
 }

@@ -7,8 +7,8 @@ global platform_api *Platform;
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
-internal void
-DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, game_material *Material)
+internal game_aabb
+DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
 {
   mat4 Transform = Mat4CreateTransform3D(Position, Rotation, Scale);
   mat4 M = Mat4Mul(Transform, PrevM);
@@ -16,7 +16,7 @@ DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, game_material *Ma
   vs_shader_constants VSConstants;
   VSConstants.Matrix = M;
   VSConstants.Transform = Transform;
-  VSConstants.Color = Material->Color;
+  VSConstants.Color = Mesh->Material->Color;
   
   ps_shader_constants PSConstants;
   PSConstants.AmbientStrength = State->AmbientStrength;
@@ -24,6 +24,50 @@ DrawMesh(vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, game_material *Ma
   PSConstants.LightColor = State->LightColor;
   
   Platform->DrawMesh(&VSConstants, &PSConstants);
+  
+  vec3 *TransCollisionPositions = PushArray(&State->TempArena, vec3, Mesh->CollisionPositionCount);
+  for(s32 CollisionPositionIndex = 0;
+      CollisionPositionIndex < Mesh->CollisionPositionCount;
+      ++CollisionPositionIndex)
+  {
+    vec3 Pos_ = Mesh->CollisionPositions[CollisionPositionIndex];
+    
+    vec4 Pos;
+    Pos.xyz = Pos_;
+    Pos.w = 1;
+    
+    vec4 NewPos = Vec4MulMat4(Pos, &Transform);
+    TransCollisionPositions[CollisionPositionIndex] = NewPos.xyz;
+  }
+  
+  game_aabb Result = {0};
+  for(s32 CollisionPositionIndex = 0;
+      CollisionPositionIndex < Mesh->CollisionPositionCount;
+      ++CollisionPositionIndex)
+  {
+    vec3 Point = TransCollisionPositions[CollisionPositionIndex];
+    if(Vec3GreaterThan(Point, Result.Max))
+    {
+      Result.Max = Point;
+      continue;
+    }
+    if(Vec3LessThan(Point, Result.Min))
+    {
+      Result.Min = Point;
+    }
+  }
+  PopArray(&State->TempArena, vec3, Mesh->CollisionPositionCount);
+  
+  {
+    f32 DistX = Result.Max.x - Result.Min.x;
+    f32 DistY = Result.Max.y - Result.Min.y;
+    f32 DistZ = Result.Max.z - Result.Min.z;
+    Result.MidPoint.x = Result.Min.x + DistX/2;
+    Result.MidPoint.y = Result.Min.y + DistY/2;
+    Result.MidPoint.z = Result.Min.z + DistZ/2;
+  }
+  
+  return(Result);
 }
 
 GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
@@ -140,10 +184,60 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   }
   
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  DrawMesh(Vec3(0, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM, State->CubeMeshes[0].Material);
+  game_aabb CubeAABB = DrawMesh(State->CubeMeshes, Vec3(0, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM);
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  DrawMesh(Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot + 45, State->CubeRot + 45), Vec3(1, 1, 1), PrevM, State->ConeMeshes[0].Material);
+  DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(State->CubeRot + 45, State->CubeRot + 45, State->CubeRot + 45), Vec3(1, 1, 1), PrevM);
+  
+  if(State->CameraPosition.x >= CubeAABB.Min.x &&
+     State->CameraPosition.x <= CubeAABB.Max.x &&
+     State->CameraPosition.y >= CubeAABB.Min.y &&
+     State->CameraPosition.y <= CubeAABB.Max.y &&
+     State->CameraPosition.z >= CubeAABB.Min.z &&
+     State->CameraPosition.z <= CubeAABB.Max.z)
+  {
+    vec3 RawDist = Vec3Subtract(State->CameraPosition, CubeAABB.MidPoint);
+    vec3 Dist = Vec3((f32)fabs(RawDist.x), (f32)fabs(RawDist.y), (f32)fabs(RawDist.z));
+    if(Dist.x >= Dist.y && Dist.x >= Dist.z)
+    {
+      if(RawDist.x < 0)
+      {
+        // Positive X Coll
+        State->CameraPosition.x = CubeAABB.Min.x;
+      }
+      else
+      {
+        // Negative X Coll
+        State->CameraPosition.x = CubeAABB.Max.x;
+      }
+    }
+    else if(Dist.y >= Dist.x && Dist.y >= Dist.z)
+    {
+      if(RawDist.y < 0)
+      {
+        // Positive Y Coll
+        State->CameraPosition.y = CubeAABB.Min.y;
+      }
+      else
+      {
+        // Negative Y Coll
+        State->CameraPosition.y = CubeAABB.Max.y;
+      }
+    }
+    else
+    {
+      if(RawDist.z > 0)
+      {
+        // Positive Z Coll
+        State->CameraPosition.z = CubeAABB.Max.z;
+      }
+      else
+      {
+        // Negative Z Coll
+        State->CameraPosition.z = CubeAABB.Min.z;
+      }
+    }
+  }
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

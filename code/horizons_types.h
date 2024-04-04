@@ -121,12 +121,19 @@ typedef union vec3
 } vec3;
 
 #define Vec3(x, y, z) (vec3){(x), (y), (z)}
+#define Vec3GreaterThan(A, B) ((A).x > (B).x) || ((A).y > (B).y) || ((A).z > (B).z)
+#define Vec3LessThan(A, B) ((A).x < (B).x) || ((A).y < (B).y) || ((A).z < (B).z)
 
 typedef union vec4
 {
   struct
   {
     f32 x, y, z, w;
+  };
+  struct
+  {
+    vec3 xyz;
+    f32 w_;
   };
   struct
   {

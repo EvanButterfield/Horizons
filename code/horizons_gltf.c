@@ -271,7 +271,7 @@ LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
       Mesh.Material = Material;
       Meshes[MeshIndex] = Mesh;
       
-      PopArray(&State->TempArena, f32, PositionCount + UVCount);
+      PopArray(&State->TempArena, f32, PositionCount + NormalCount + UVCount);
       MeshElement = MeshElement->next;
     }
   }

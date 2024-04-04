@@ -42,15 +42,12 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
       CollisionPositionIndex < Mesh->CollisionPositionCount;
       ++CollisionPositionIndex)
   {
-    vec3 Pos_ = Mesh->CollisionPositions[CollisionPositionIndex];
+    vec3 Pos = Mesh->CollisionPositions[CollisionPositionIndex];
     
-    vec4 Pos;
-    Pos.xyz = Pos_;
-    Pos.w = 1;
-    
-    vec4 NewPos = Vec4MulMat4(Pos, &Transform);
-    vec3 ResultPos = Vec3Add(NewPos.xyz, Position);
-    TransCollisionPositions[CollisionPositionIndex] = ResultPos;
+    mat3 Transform3 = Mat3FromMat4(&Transform);
+    vec3 NewPos = Vec3MulMat3(Pos, &Transform3);
+    NewPos = Vec3Add(NewPos, Position);
+    TransCollisionPositions[CollisionPositionIndex] = NewPos;
   }
   
   game_aabb Result = {TransCollisionPositions[0], TransCollisionPositions[0]};

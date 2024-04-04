@@ -142,6 +142,17 @@ Vec3Cross(vec3 A, vec3 B)
   return(Result);
 }
 
+internal inline vec3
+Vec3MulMat3(vec3 V, mat3 *M)
+{
+  vec3 Result;
+  Result.x = V.x*M->Elements[0][0] + V.y*M->Elements[0][1] + V.z*M->Elements[0][2];
+  Result.y = V.x*M->Elements[1][0] + V.y*M->Elements[1][1] + V.z*M->Elements[1][2];
+  Result.z = V.x*M->Elements[2][0] + V.y*M->Elements[2][1] + V.z*M->Elements[2][2];
+  
+  return(Result);
+}
+
 internal inline f32
 Vec3Length(vec3 V)
 {

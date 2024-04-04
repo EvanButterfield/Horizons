@@ -3,6 +3,9 @@
 #ifndef HORIZONS_MATH_H
 #define HORIZONS_MATH_H
 
+// Thank you to everyone that made Handmade_Math.h for a lot of the equations used
+// https://github.com/HandmadeMath/HandmadeMath
+
 #include <math.h>
 
 // NOTE(evan): This exists because I don't want to

@@ -1,3 +1,6 @@
+// Thank you to Casey Muratori for the overall design of the platform layer
+// handmadehero.org
+
 int _fltused;
 
 #define COBJMACROS

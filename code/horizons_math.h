@@ -92,6 +92,13 @@ Vec3Add(vec3 A, vec3 B)
 }
 
 internal inline vec3
+Vec3AddScalar(vec3 A, f32 B)
+{
+  vec3 Result = Vec3Add(A, Vec3(B, B, B));
+  return(Result);
+}
+
+internal inline vec3
 Vec3Subtract(vec3 A, vec3 B)
 {
   vec3 Result;
@@ -99,6 +106,13 @@ Vec3Subtract(vec3 A, vec3 B)
   Result.y = A.y - B.y;
   Result.z = A.z - B.z;
   
+  return(Result);
+}
+
+internal inline vec3
+Vec3SubtractScalar(vec3 A, f32 B)
+{
+  vec3 Result = Vec3Subtract(A, Vec3(B, B, B));
   return(Result);
 }
 

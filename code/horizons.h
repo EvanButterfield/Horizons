@@ -42,6 +42,8 @@ typedef struct game_state
   vec3 CameraRotation;
   vec3 CameraFront;
   vec3 CameraUp;
+  f32 CameraColliderSize;
+  b32 IsColliding;
   
   f32 AmbientStrength;
   vec3 LightDirection;

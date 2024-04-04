@@ -112,6 +112,8 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CameraRotation = Vec3(0, 90, 0);
     State->CameraFront = Vec3(0, 0, 0);
     State->CameraUp = Vec3(0, 1, 0);
+    State->CameraColliderSize = .2f;
+    State->IsColliding = false;
     
     State->AmbientStrength = .1f;
     State->LightDirection = Vec3(-.2f, -1, -.3f);
@@ -166,7 +168,6 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     // TODO(evan): Make sure this is between 0 and 360
     State->CameraRotation.Yaw -= MouseX;
     
-    
     f32 Speed = 12;
     vec2 Movement = {0};
     if(Input->Keyboard.W)
@@ -190,13 +191,77 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     vec3 CameraGroundedRotation =
       Vec3Normalize(Vec3(State->CameraFront.x, 0, State->CameraFront.z));
-    State->CameraPosition =
+    vec3 NewPosition =
       Vec3Add(State->CameraPosition, Vec3Scale(CameraGroundedRotation, Movement.z));
-    State->CameraPosition =
-      Vec3Add(State->CameraPosition,
+    NewPosition =
+      Vec3Add(NewPosition,
               Vec3Scale(Vec3Normalize(Vec3Cross(CameraGroundedRotation,
                                                 State->CameraUp)),
                         Movement.x));
+    State->CameraPosition = NewPosition;
+  }
+  
+  State->IsColliding = false;
+  game_aabb CameraCollider;
+  CameraCollider.Max = Vec3AddScalar(State->CameraPosition, State->CameraColliderSize);
+  CameraCollider.Min = Vec3SubtractScalar(State->CameraPosition, State->CameraColliderSize);
+  CameraCollider.MidPoint = State->CameraPosition;
+  for(s32 ColliderIndex = 0;
+      ColliderIndex < State->NumColliders;
+      ++ColliderIndex)
+  {
+    game_aabb Collider = State->Colliders[ColliderIndex];
+    
+    if(CameraCollider.Max.x >= Collider.Min.x &&
+       CameraCollider.Min.x <= Collider.Max.x &&
+       CameraCollider.Max.y >= Collider.Min.y &&
+       CameraCollider.Min.y <= Collider.Max.y &&
+       CameraCollider.Max.z >= Collider.Min.z &&
+       CameraCollider.Min.z <= Collider.Max.z)
+    {
+      State->IsColliding = true;
+      vec3 RawDist = Vec3Subtract(State->CameraPosition, Collider.MidPoint);
+      vec3 Dist = Vec3((f32)fabs(RawDist.x), (f32)fabs(RawDist.y), (f32)fabs(RawDist.z));
+      if(Dist.x >= Dist.y && Dist.x >= Dist.z)
+      {
+        if(RawDist.x < 0)
+        {
+          // Positive X Coll
+          State->CameraPosition.x = Collider.Min.x - State->CameraColliderSize;
+        }
+        else
+        {
+          // Negative X Coll
+          State->CameraPosition.x = Collider.Max.x + State->CameraColliderSize;
+        }
+      }
+      else if(Dist.y >= Dist.x && Dist.y >= Dist.z)
+      {
+        if(RawDist.y < 0)
+        {
+          // Positive Y Coll
+          State->CameraPosition.y = Collider.Min.y - State->CameraColliderSize;
+        }
+        else
+        {
+          // Negative Y Coll
+          State->CameraPosition.y = Collider.Max.y + State->CameraColliderSize;
+        }
+      }
+      else
+      {
+        if(RawDist.z > 0)
+        {
+          // Positive Z Coll
+          State->CameraPosition.z = Collider.Max.z + State->CameraColliderSize;
+        }
+        else
+        {
+          // Negative Z Coll
+          State->CameraPosition.z = Collider.Min.z - State->CameraColliderSize;
+        }
+      }
+    }
   }
   
   f32 Aspect = (f32)WindowDimension.Width / WindowDimension.Height;
@@ -209,70 +274,14 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CubeRot += 30*DeltaTime;
   }
   
+  State->NumColliders = 0;
+  
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
   AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM));
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
   AddCollider(DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), PrevM));
   
-  for(s32 ColliderIndex = 0;
-      ColliderIndex < State->NumColliders;
-      ++ColliderIndex)
-  {
-    game_aabb Collider = State->Colliders[ColliderIndex];
-    
-    if(State->CameraPosition.x >= Collider.Min.x &&
-       State->CameraPosition.x <= Collider.Max.x &&
-       State->CameraPosition.y >= Collider.Min.y &&
-       State->CameraPosition.y <= Collider.Max.y &&
-       State->CameraPosition.z >= Collider.Min.z &&
-       State->CameraPosition.z <= Collider.Max.z)
-    {
-      vec3 RawDist = Vec3Subtract(State->CameraPosition, Collider.MidPoint);
-      vec3 Dist = Vec3((f32)fabs(RawDist.x), (f32)fabs(RawDist.y), (f32)fabs(RawDist.z));
-      if(Dist.x >= Dist.y && Dist.x >= Dist.z)
-      {
-        if(RawDist.x < 0)
-        {
-          // Positive X Coll
-          State->CameraPosition.x = Collider.Min.x;
-        }
-        else
-        {
-          // Negative X Coll
-          State->CameraPosition.x = Collider.Max.x;
-        }
-      }
-      else if(Dist.y >= Dist.x && Dist.y >= Dist.z)
-      {
-        if(RawDist.y < 0)
-        {
-          // Positive Y Coll
-          State->CameraPosition.y = Collider.Min.y;
-        }
-        else
-        {
-          // Negative Y Coll
-          State->CameraPosition.y = Collider.Max.y;
-        }
-      }
-      else
-      {
-        if(RawDist.z > 0)
-        {
-          // Positive Z Coll
-          State->CameraPosition.z = Collider.Max.z;
-        }
-        else
-        {
-          // Negative Z Coll
-          State->CameraPosition.z = Collider.Min.z;
-        }
-      }
-    }
-  }
-  
-  State->NumColliders = 0;
   State->LastInput = *Input;
   State->TempArena.Used = 0;
   return(Input->Keyboard.Escape);

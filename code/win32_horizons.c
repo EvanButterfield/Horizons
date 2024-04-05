@@ -681,43 +681,13 @@ Win32WindowProc(HWND Window,
       
       if(WasDown != IsDown)
       {
+        if(VKCode >= 'A' && VKCode <= 'Z')
+        {
+          GlobalState->GameInput.Keyboard.Letters[VKCode - 'A'] = IsDown;
+        }
+        
         switch(VKCode)
         {
-          case 'W':
-          {
-            GlobalState->GameInput.Keyboard.W = IsDown;
-          } break;
-          
-          case 'A':
-          {
-            GlobalState->GameInput.Keyboard.A = IsDown;
-          } break;
-          
-          case 'S':
-          {
-            GlobalState->GameInput.Keyboard.S = IsDown;
-          } break;
-          
-          case 'D':
-          {
-            GlobalState->GameInput.Keyboard.D = IsDown;
-          } break;
-          
-          case 'Q':
-          {
-            GlobalState->GameInput.Keyboard.Q = IsDown;
-          } break;
-          
-          case 'E':
-          {
-            GlobalState->GameInput.Keyboard.E = IsDown;
-          } break;
-          
-          case 'M':
-          {
-            GlobalState->GameInput.Keyboard.M = IsDown;
-          } break;
-          
           case VK_UP:
           {
             GlobalState->GameInput.Keyboard.Up = IsDown;

@@ -4,6 +4,9 @@
 global game_state *State;
 global platform_api *Platform;
 
+#define LetterJustPressed(Input, Letter) ((Input)->Keyboard.Letters[(Letter) - 'A'] == 1 && State->LastInput.Keyboard.Letters[(Letter) - 'A'] == 0)
+#define LetterDown(Input, Letter) (Input)->Keyboard.Letters[(Letter) - 'A']
+
 #include "horizons_json.c"
 #include "horizons_gltf.c"
 
@@ -112,6 +115,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->CameraRotation = Vec3(0, 90, 0);
     State->CameraFront = Vec3(0, 0, 0);
     State->CameraUp = Vec3(0, 1, 0);
+    State->CameraSpeed = 12;
     State->CameraColliderSize = .2f;
     State->IsColliding = false;
     
@@ -119,35 +123,37 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->LightDirection = Vec3(-.2f, -1, -.3f);
     State->LightColor = Vec3(.3f, .3f, .3f);
     
-    State->ControllingCharacter = false;
-    
-    State->CubeRot = 0;
+    State->Mode = GAME_MODE_VIEW;
     
     LoadGLTF("cube.gltf", &State->CubeMeshes);
     LoadGLTF("cone.gltf", &State->ConeMeshes);
-    
-    State->Rotating = false;
     
     State->TempArena.Used = 0;
     State->Initialized = true;
   }
   
   State->Time += DeltaTime;
+  f32 CameraSpeed = State->CameraSpeed*DeltaTime;
   
-  if(Input->Keyboard.E && !State->LastInput.Keyboard.E)
+  if(LetterJustPressed(Input, 'E'))
   {
-    State->ControllingCharacter = !State->ControllingCharacter;
+    State->Mode = GAME_MODE_VIEW;
   }
   
-  if(Input->Keyboard.Q && !State->LastInput.Keyboard.Q)
+  if(LetterJustPressed(Input, 'F'))
   {
-    State->Rotating = !State->Rotating;
+    State->Mode = GAME_MODE_FIRST_PERSON;
+  }
+  
+  if(LetterJustPressed(Input, 'Q'))
+  {
+    State->Mode = GAME_MODE_DEV;
   }
   
   State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
                                              State->CameraRotation.y*DEG_TO_RAD);
   
-  if(State->ControllingCharacter)
+  if(State->Mode != GAME_MODE_VIEW)
   {
     f32 Sensitivity = 25;
     f32 DeltaX = (f32)Input->Mouse.X - State->LastInput.Mouse.X;
@@ -167,38 +173,64 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     
     // TODO(evan): Make sure this is between 0 and 360
     State->CameraRotation.Yaw -= MouseX;
-    
-    f32 Speed = 12;
+  }
+  
+  if(State->Mode == GAME_MODE_FIRST_PERSON)
+  {
     vec2 Movement = {0};
-    if(Input->Keyboard.W)
+    if(LetterDown(Input, 'W'))
     {
       Movement.z -= 1;
     }
-    if(Input->Keyboard.S)
+    if(LetterDown(Input, 'S'))
     {
       Movement.z += 1;
     }
-    if(Input->Keyboard.D)
-    {
-      Movement.x += 1;
-    }
-    if(Input->Keyboard.A)
+    if(LetterDown(Input, 'A'))
     {
       Movement.x -= 1;
     }
+    if(LetterDown(Input, 'D'))
+    {
+      Movement.x += 1;
+    }
     Movement = Vec2Normalize(Movement);
-    Movement = Vec2Scale(Movement, Speed*DeltaTime);
+    Movement = Vec2Scale(Movement, CameraSpeed);
     
-    vec3 CameraGroundedRotation =
-      Vec3Normalize(Vec3(State->CameraFront.x, 0, State->CameraFront.z));
-    vec3 NewPosition =
-      Vec3Add(State->CameraPosition, Vec3Scale(CameraGroundedRotation, Movement.z));
-    NewPosition =
-      Vec3Add(NewPosition,
-              Vec3Scale(Vec3Normalize(Vec3Cross(CameraGroundedRotation,
-                                                State->CameraUp)),
-                        Movement.x));
-    State->CameraPosition = NewPosition;
+    if(State->Mode == GAME_MODE_FIRST_PERSON)
+    {
+      vec3 CameraGroundedRotation =
+        Vec3Normalize(Vec3(State->CameraFront.x, 0, State->CameraFront.z));
+      vec3 NewPosition =
+        Vec3Add(State->CameraPosition, Vec3Scale(CameraGroundedRotation, Movement.z));
+      NewPosition =
+        Vec3Add(NewPosition,
+                Vec3Scale(Vec3Normalize(Vec3Cross(CameraGroundedRotation,
+                                                  State->CameraUp)),
+                          Movement.x));
+      State->CameraPosition = NewPosition;
+    }
+  }
+  
+  if(State->Mode == GAME_MODE_DEV)
+  {
+    vec3 CrossFrontUp = Vec3Normalize(Vec3Cross(State->CameraFront, State->CameraUp));
+    if(LetterDown(Input, 'W'))
+    {
+      State->CameraPosition = Vec3Subtract(State->CameraPosition, Vec3Scale(State->CameraFront, CameraSpeed));
+    }
+    if(LetterDown(Input, 'S'))
+    {
+      State->CameraPosition = Vec3Add(State->CameraPosition, Vec3Scale(State->CameraFront, CameraSpeed));
+    }
+    if(LetterDown(Input, 'A'))
+    {
+      State->CameraPosition = Vec3Subtract(State->CameraPosition, Vec3Scale(CrossFrontUp, CameraSpeed)); 
+    }
+    if(LetterDown(Input, 'D'))
+    {
+      State->CameraPosition = Vec3Add(State->CameraPosition, Vec3Scale(CrossFrontUp, CameraSpeed));
+    }
   }
   
   State->IsColliding = false;
@@ -269,15 +301,10 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
   
-  if(State->Rotating)
-  {
-    State->CubeRot += 30*DeltaTime;
-  }
-  
   State->NumColliders = 0;
   
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Vec3(State->CubeRot, State->CubeRot, State->CubeRot), Vec3(1, 1.5f, 1), PrevM));
+  AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Vec3(0, 0, 0), Vec3(1, 1.5f, 1), PrevM));
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
   AddCollider(DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), PrevM));

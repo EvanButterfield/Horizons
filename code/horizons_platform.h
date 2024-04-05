@@ -10,13 +10,7 @@ global string8 ResourcePath = {RESOURCE_PATH_STR, ArrayCount(RESOURCE_PATH_STR) 
 
 typedef struct game_keyboard_input
 {
-  b32 W;
-  b32 A;
-  b32 S;
-  b32 D;
-  b32 Q;
-  b32 E;
-  b32 M;
+  b32 Letters['Z' - 'A'];
   
   b32 Up;
   b32 Left;

@@ -28,6 +28,13 @@ typedef struct game_aabb
   vec3 MidPoint;
 } game_aabb;
 
+typedef enum game_mode
+{
+  GAME_MODE_VIEW,
+  GAME_MODE_FIRST_PERSON,
+  GAME_MODE_DEV
+} game_mode;
+
 #define MAX_COLLIDERS 32
 typedef struct game_state
 {
@@ -38,10 +45,13 @@ typedef struct game_state
   
   f32 Time;
   
+  game_mode Mode;
+  
   vec3 CameraPosition;
   vec3 CameraRotation;
   vec3 CameraFront;
   vec3 CameraUp;
+  f32 CameraSpeed;
   f32 CameraColliderSize;
   b32 IsColliding;
   
@@ -51,11 +61,8 @@ typedef struct game_state
   
   b32 ControllingCharacter;
   
-  b32 Rotating;
-  
   game_mesh *CubeMeshes;
   game_mesh *ConeMeshes;
-  f32 CubeRot;
   
   game_aabb Colliders[MAX_COLLIDERS];
   s32 NumColliders;

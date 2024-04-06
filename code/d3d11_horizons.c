@@ -11,11 +11,12 @@ D3D11CreateSprite_(ID3D11Device *Device,
                    u32 *Texture, u32 TextureWidth, u32 TextureHeight);
 internal d3d11_mesh
 D3D11CreateMesh_(ID3D11Device *Device,
-                 vertex *VData, u32 VDataLengh,
+                 vertex *VData, u32 VDataLength,
                  u32 *IData, u32 IDataLength);
 
 internal d3d11_state
-InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
+InitD3D11(HWND Window, platform_api *Platform,
+          memory_arena *PermArena, memory_arena *TempArena)
 {
   HRESULT Result;
   
@@ -98,31 +99,58 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   }
   
   d3d11_mesh Mesh;
+  vertex *VData;
+  s32 VDataCount;
   {
-    vertex VData[] =
+    vertex VData_[] =
     {
-      { {-1, -1, -1}, {0, 0, 0}, {0, 1}, {1, 1, 1} },
-      { {1, -1, -1}, {0, 0, 0}, {1, 1}, {1, 1, 1} },
-      { {-1, 1, -1}, {0, 0, 0}, {0, 0}, {1, 1, 1} },
-      { {1, 1, -1}, {0, 0, 0}, {1, 0}, {1, 1, 1} },
+      { {1, 1, -1}, {0, 0, -1}, {0, 0}, {1, 1, 1} },
+      { {1, 1, -1}, {0, 1, 0}, {0, 0}, {1, 1, 1} },
+      { {1, 1, -1}, {1, 0, 0}, {0, 0}, {1, 1, 1} },
       
-      { {-1, -1, 1}, {0, 0, 0}, {0, 1}, {1, 1, 1} },
-      { {1, -1, 1}, {0, 0, 0}, {1, 1}, {1, 1, 1} },
-      { {-1, 1, 1}, {0, 0, 0}, {0, 0}, {1, 1, 1} },
-      { {1, 1, 1}, {0, 0, 0}, {1, 0}, {1, 1, 1} }
+      { {1, -1, -1}, {0, -1, 0}, {0, 0}, {1, 1, 1} },
+      { {1, -1, -1}, {0, 0, -1}, {0, 0}, {1, 1, 1} },
+      { {1, -1, -1}, {1, 0, 0}, {0, 0}, {1, 1, 1} },
+      
+      { {1, 1, 1}, {0, 0, 1}, {0, 0}, {1, 1, 1} },
+      { {1, 1, 1}, {0, 1, 0}, {0, 0}, {1, 1, 1} },
+      { {1, 1, 1}, {1, 0, 0}, {0, 0}, {1, 1, 1} },
+      
+      { {1, -1, 1}, {0, -1, 0}, {0, 0}, {1, 1, 1} },
+      { {1, -1, 1}, {0, 0, 1}, {0, 0}, {1, 1, 1} },
+      { {1, -1, 1}, {1, 0, 0}, {0, 0}, {1, 1, 1} },
+      
+      { {-1, 1, -1}, {-1, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, 1, -1}, {0, 0, -1}, {0, 0}, {1, 1, 1} },
+      { {-1, 1, -1}, {0, 1, 0}, {0, 0}, {1, 1, 1} },
+      
+      { {-1, -1, -1}, {-1, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, -1, -1}, {0, -1, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, -1, -1}, {0, 0, -1}, {0, 0}, {1, 1, 1} },
+      
+      { {-1, 1, 1}, {-1, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, 1, 1}, {0, 0, 1}, {0, 0}, {1, 1, 1} },
+      { {-1, 1, 1}, {0, 1, 0}, {0, 0}, {1, 1, 1} },
+      
+      { {-1, -1, 1}, {-1, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, -1, 1}, {0, -1, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, -1, 1}, {0, 0, 1}, {0, 0}, {1, 1, 1} },
     };
+    VDataCount = ArrayCount(VData_);
+    VData = PushArray(PermArena, vertex, VDataCount);
+    Platform->CopyMemory(VData, VData_, sizeof(vertex)*VDataCount);
     
     u32 IData[] =
     {
-      0, 2, 1, 2, 3, 1,
-      1, 3, 5, 3, 7, 5,
-      2, 6, 3, 3, 6, 7,
-      4, 5, 7, 4, 7, 6,
-      0, 4, 2, 2, 4, 6,
-      0, 1, 4, 1, 5, 4
+      1, 14, 20, 1, 20, 7,
+      10, 6, 19, 10, 19, 23,
+      21, 18, 12, 21, 12, 15,
+      16, 3, 9, 16, 9, 22,
+      5, 2, 8, 5, 8, 11,
+      17, 13, 0, 17, 0, 4
     };
     
-    Mesh = D3D11CreateMesh_(Device, VData, ArrayCount(VData),
+    Mesh = D3D11CreateMesh_(Device, VData, VDataCount,
                             IData, ArrayCount(IData));
   }
   
@@ -207,7 +235,8 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
     ID3D11Device_CreateBlendState(Device, &Desc, &BlendState);
   }
   
-  ID3D11RasterizerState* RasterizerState;
+  ID3D11RasterizerState* RSSolid;
+  ID3D11RasterizerState* RSWireframe;
   {
     D3D11_RASTERIZER_DESC Desc =
     {
@@ -216,7 +245,11 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
       .DepthClipEnable = TRUE,
     };
     
-    ID3D11Device_CreateRasterizerState(Device, &Desc, &RasterizerState);
+    ID3D11Device_CreateRasterizerState(Device, &Desc, &RSSolid);
+    
+    Desc.FillMode = D3D11_FILL_WIREFRAME;
+    Desc.CullMode = D3D11_CULL_NONE;
+    ID3D11Device_CreateRasterizerState(Device, &Desc, &RSWireframe);
   }
   
   ID3D11DepthStencilState* DepthState;
@@ -240,18 +273,26 @@ InitD3D11(HWND Window, platform_api *Platform, memory_arena *TempArena)
   {
     .Device = Device,
     .Context = Context,
+    
     .SwapChain = SwapChain,
+    
+    .VSConstantsBuffer = VSConstantsBuffer,
+    .PSConstantsBuffer = PSConstantsBuffer,
+    
     .DefaultShader = Shader,
     .CurrentShader = Shader,
     .DefaultSprite = Sprite,
     .CurrentSprite = Sprite,
     .DefaultMesh = Mesh,
+    .DefaultMeshVertices = VData,
+    .DefaultMeshVertexCount = VDataCount,
     .CurrentMesh = Mesh,
-    .VSConstantsBuffer = VSConstantsBuffer,
-    .PSConstantsBuffer = PSConstantsBuffer,
+    
     .Sampler = Sampler,
     .BlendState = BlendState,
-    .RasterizerState = RasterizerState,
+    .RSSolid = RSSolid,
+    .RSWireframe = RSWireframe,
+    .CurrentRS = RSSolid,
     .DepthState = DepthState
   };
   return(State);
@@ -282,7 +323,7 @@ D3D11Resize(d3d11_state *State, window_dimension New, platform_api *Platform)
       Assert(0);
     }
     
-    ID3D11DeviceContext_RSSetState(State->Context, State->RasterizerState);
+    ID3D11DeviceContext_RSSetState(State->Context, State->CurrentRS);
     ID3D11DeviceContext_OMSetBlendState(State->Context, State->BlendState, 0, ~0U);
     ID3D11DeviceContext_OMSetDepthStencilState(State->Context, State->DepthState, 0);
     ID3D11DeviceContext_IASetInputLayout(State->Context, State->CurrentShader.Layout);
@@ -555,4 +596,21 @@ D3D11CreateMesh(d3d11_state *State,
                                      VData, VDataLength,
                                      IData, IDataLength);
   return(Mesh);
+}
+
+internal void
+D3D11SetFillMode(d3d11_state *State, platform_fill_mode Mode)
+{
+  ID3D11RasterizerState *RS = 0;
+  if(Mode == PLATFORM_FILL_SOLID)
+  {
+    RS = State->RSSolid;
+  }
+  else if(Mode == PLATFORM_FILL_WIREFRAME)
+  {
+    RS = State->RSWireframe;
+  }
+  
+  State->CurrentRS = RS;
+  ID3D11DeviceContext_RSSetState(State->Context, RS);
 }

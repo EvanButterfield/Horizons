@@ -143,6 +143,7 @@ typedef union vec4
 } vec4;
 
 #define Vec4(x, y, z, w) (vec4){(x), (y), (z), (w)}
+#define Vec4FromVec3(xyz, w) (vec4){(xyz).x, (xyz).y, (xyz).z, w}
 
 typedef union mat3
 {

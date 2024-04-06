@@ -10,6 +10,11 @@ typedef struct gltf_accessor
   s32 Count;
 } gltf_accessor;
 
+internal game_mesh
+CreateMesh(platform_mesh Mesh)
+{
+}
+
 internal s32
 LoadGLTF(s8 *NameStr, game_mesh **Meshes_)
 {

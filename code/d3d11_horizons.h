@@ -41,11 +41,15 @@ typedef struct d3d11_state
   d3d11_sprite DefaultSprite;
   d3d11_sprite CurrentSprite;
   d3d11_mesh DefaultMesh;
+  vertex *DefaultMeshVertices;
+  s32 DefaultMeshVertexCount;
   d3d11_mesh CurrentMesh;
   
-  ID3D11SamplerState* Sampler;
-  ID3D11BlendState* BlendState;
-  ID3D11RasterizerState* RasterizerState;
+  ID3D11SamplerState *Sampler;
+  ID3D11BlendState *BlendState;
+  ID3D11RasterizerState *RSSolid;
+  ID3D11RasterizerState *RSWireframe;
+  ID3D11RasterizerState *CurrentRS;
   ID3D11DepthStencilState *DepthState;
   
   ID3D11RenderTargetView *RTView;

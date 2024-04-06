@@ -394,6 +394,11 @@ internal PLATFORM_SET_SHADER(Win32SetShader)
   D3D11SetShader(&GlobalState->D3D11State, *((d3d11_shader *)Shader));
 }
 
+internal PLATFORM_SET_FILL_MODE(Win32SetFillMode)
+{
+  D3D11SetFillMode(&GlobalState->D3D11State, Mode);
+}
+
 internal LRESULT CALLBACK
 Win32WindowProc(HWND Window,
                 UINT Message,
@@ -441,6 +446,7 @@ WinMain(HINSTANCE Instance,
     Platform.DrawMesh = Win32DrawMesh;
     Platform.CreateShader = Win32CreateShader;
     Platform.SetShader = Win32SetShader;
+    Platform.SetFillMode = Win32SetFillMode;
     GameMemory.Platform = Platform;
     
     memory_index PlatformPermMemorySize = Mebibytes(64);
@@ -517,7 +523,7 @@ WinMain(HINSTANCE Instance,
         
         GlobalState->D3D11State =
           InitD3D11(GlobalState->Window, &GlobalState->Platform,
-                    &GlobalState->TempArena);
+                    &GlobalState->PermArena, &GlobalState->TempArena);
         if(GlobalState->D3D11State.Device == 0)
         {
           Win32LogMessagePlain("D3D11 failed to initialize\n", false, MESSAGE_SEVERITY_ERROR);
@@ -526,6 +532,8 @@ WinMain(HINSTANCE Instance,
         
         GameMemory.DefaultSprite = &GlobalState->D3D11State.DefaultSprite;
         GameMemory.DefaultMesh = &GlobalState->D3D11State.DefaultMesh;
+        GameMemory.DefaultMeshVertices = GlobalState->D3D11State.DefaultMeshVertices;
+        GameMemory.DefaultMeshVertexCount = GlobalState->D3D11State.DefaultMeshVertexCount;
         GameMemory.DefaultShader = &GlobalState->D3D11State.DefaultShader;
         
         LARGE_INTEGER LastCounter = Win32GetWallClock();

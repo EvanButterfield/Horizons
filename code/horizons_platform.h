@@ -168,8 +168,17 @@ typedef struct ps_shader_constants
   f32 AmbientStrength;
   vec3 LightDirection;
   vec3 LightColor;
+  
+  float Padding;
+  vec3 CameraPosition;
 } ps_shader_constants;
 #pragma pack(pop)
+
+typedef enum platform_fill_mode
+{
+  PLATFORM_FILL_SOLID,
+  PLATFORM_FILL_WIREFRAME
+} platform_fill_mode;
 
 // TODO(evan): Create a metadata thing to generate this
 
@@ -228,6 +237,9 @@ typedef PLATFORM_CREATE_SHADER(platform_create_shader);
 #define PLATFORM_SET_SHADER(name) void name(platform_shader Shader)
 typedef PLATFORM_SET_SHADER(platform_set_shader);
 
+#define PLATFORM_SET_FILL_MODE(name) void name(platform_fill_mode Mode)
+typedef PLATFORM_SET_FILL_MODE(platform_set_fill_mode);
+
 
 // Misc
 #define PLATFORM_SLEEP(name) void name(s32 MS)
@@ -254,6 +266,7 @@ typedef struct platform_api
   platform_draw_mesh *DrawMesh;
   platform_create_shader *CreateShader;
   platform_set_shader *SetShader;
+  platform_set_fill_mode *SetFillMode;
   
   platform_copy_memory *CopyMemory;
   platform_zero_memory *ZeroMemory;
@@ -273,6 +286,8 @@ typedef struct memory
   platform_api Platform;
   platform_sprite DefaultSprite;
   platform_mesh DefaultMesh;
+  vertex *DefaultMeshVertices;
+  s32 DefaultMeshVertexCount;
   platform_shader DefaultShader;
 } memory;
 

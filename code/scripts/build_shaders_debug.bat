@@ -10,6 +10,9 @@ echo "Compiling New Horizons shaders"
 del *.fxc > NUL 2>&1
 fxc %VSOptions% /Fo shader_vs.fxc %Options% w:\new-horizons\code\shaders.hlsl
 fxc %PSOptions% /Fo shader_ps.fxc %Options% w:\new-horizons\code\shaders.hlsl
+
+fxc %VSOptions% /Fo outline_shader_vs.fxc %Options% w:\new-horizons\code\outline_shaders.hlsl
+fxc %PSOptions% /Fo outline_shader_ps.fxc %Options% w:\new-horizons\code\outline_shaders.hlsl
 echo "Done compiling New Horizons shaders"
 
 popd

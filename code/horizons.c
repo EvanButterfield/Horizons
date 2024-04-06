@@ -23,7 +23,7 @@ AddCollider(game_aabb Collider)
 }
 
 internal game_aabb
-DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
+DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, b32 Collider)
 {
   mat4 Transform = Mat4CreateTransform3D(Position, Rotation, Scale);
   mat4 M = Mat4Mul(Transform, PrevM);
@@ -37,8 +37,14 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
   PSConstants.AmbientStrength = State->AmbientStrength;
   PSConstants.LightDirection = State->LightDirection;
   PSConstants.LightColor = State->LightColor;
+  PSConstants.CameraPosition = State->CameraPosition;
   
   Platform->DrawMesh(&VSConstants, &PSConstants);
+  
+  if(Collider == false)
+  {
+    return((game_aabb){0});
+  }
   
   vec3 *TransCollisionPositions = PushArray(&State->TempArena, vec3, Mesh->CollisionPositionCount);
   for(s32 CollisionPositionIndex = 0;
@@ -47,10 +53,9 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
   {
     vec3 Pos = Mesh->CollisionPositions[CollisionPositionIndex];
     
-    mat3 Transform3 = Mat3FromMat4(&Transform);
-    vec3 NewPos = Vec3MulMat3(Pos, &Transform3);
-    NewPos = Vec3Add(NewPos, Position);
-    TransCollisionPositions[CollisionPositionIndex] = NewPos;
+    mat4 TransposeTransform = Mat4Transpose(&Transform);
+    vec4 NewPos = Vec4MulMat4(Vec4FromVec3(Pos, 1), &TransposeTransform);
+    TransCollisionPositions[CollisionPositionIndex] = NewPos.xyz;
   }
   
   game_aabb Result = {TransCollisionPositions[0], TransCollisionPositions[0]};
@@ -63,11 +68,11 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
     {
       Result.Max.x = Point.x;
     }
-    else if(Point.y > Result.Max.y)
+    if(Point.y > Result.Max.y)
     {
       Result.Max.y = Point.y;
     }
-    else if(Point.z > Result.Max.z)
+    if(Point.z > Result.Max.z)
     {
       Result.Max.z = Point.z;
     }
@@ -76,25 +81,24 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM)
     {
       Result.Min.x = Point.x;
     }
-    else if(Point.y < Result.Min.y)
+    if(Point.y < Result.Min.y)
     {
       Result.Min.y = Point.y;
     }
-    else if(Point.z < Result.Min.z)
+    if(Point.z < Result.Min.z)
     {
       Result.Min.z = Point.z;
     }
   }
   PopArray(&State->TempArena, vec3, Mesh->CollisionPositionCount);
   
-  {
-    f32 DistX = Result.Max.x - Result.Min.x;
-    f32 DistY = Result.Max.y - Result.Min.y;
-    f32 DistZ = Result.Max.z - Result.Min.z;
-    Result.MidPoint.x = Result.Min.x + DistX/2;
-    Result.MidPoint.y = Result.Min.y + DistY/2;
-    Result.MidPoint.z = Result.Min.z + DistZ/2;
-  }
+  f32 DistX = Result.Max.x - Result.Min.x;
+  f32 DistY = Result.Max.y - Result.Min.y;
+  f32 DistZ = Result.Max.z - Result.Min.z;
+  Result.Scale = Vec3(DistX/2, DistY/2, DistZ/2);
+  Result.MidPoint.x = (Result.Min.x + Result.Max.x)/2;
+  Result.MidPoint.y = (Result.Min.y + Result.Max.y)/2;
+  Result.MidPoint.z = (Result.Min.z + Result.Max.z)/2;
   
   return(Result);
 }
@@ -123,8 +127,37 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->LightDirection = Vec3(-.2f, -1, -.3f);
     State->LightColor = Vec3(.3f, .3f, .3f);
     
+    State->OutlineShader = Platform->CreateShader("outline_shader");
+    
     State->Mode = GAME_MODE_VIEW;
     
+    {
+      State->OutlineMesh.Mesh = Memory->DefaultMesh;
+      
+      // NOTE(evan): We store the same position 3 times for normal accuracy
+      s32 CollisionPositionCount = Memory->DefaultMeshVertexCount/3;
+      vec3 *CollisionPositions = PushArray(&State->PermArena, vec3, CollisionPositionCount);
+      s32 VerticesScanIndex = 0;
+      for(s32 VertexIndex = 0;
+          VertexIndex < CollisionPositionCount;
+          ++VertexIndex)
+      {
+        CollisionPositions[VertexIndex] = Memory->DefaultMeshVertices[VerticesScanIndex].Position;
+        VerticesScanIndex += 3;
+      }
+      
+      game_material *Material = PushStruct(&State->PermArena, game_material);
+      Material->Color = Vec4(0, 1, 0, 1);
+      Material->Metallic = 0;
+      Material->Roughness = 0;
+      
+      State->OutlineMesh.CollisionPositions = CollisionPositions;
+      State->OutlineMesh.CollisionPositionCount = CollisionPositionCount;
+      State->OutlineMesh.Material = Material;
+    }
+    
+    State->CubeRot = 0;
+    State->IsRotating = true;
     LoadGLTF("cube.gltf", &State->CubeMeshes);
     LoadGLTF("cone.gltf", &State->ConeMeshes);
     
@@ -150,10 +183,16 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->Mode = GAME_MODE_DEV;
   }
   
+  if(LetterJustPressed(Input, 'R'))
+  {
+    State->IsRotating = !State->IsRotating;
+  }
+  
   State->CameraFront = Vec3FPEulerToRotation(State->CameraRotation.x*DEG_TO_RAD,
                                              State->CameraRotation.y*DEG_TO_RAD);
   
-  if(State->Mode != GAME_MODE_VIEW)
+  if(State->Mode == GAME_MODE_FIRST_PERSON ||
+     (State->Mode == GAME_MODE_DEV && Input->Mouse.RButton))
   {
     f32 Sensitivity = 25;
     f32 DeltaX = (f32)Input->Mouse.X - State->LastInput.Mouse.X;
@@ -303,11 +342,39 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   
   State->NumColliders = 0;
   
+  Platform->SetShader(Memory->DefaultShader);
+  Platform->SetFillMode(PLATFORM_FILL_SOLID);
+  
+  if(State->IsRotating)
+  {
+    State->CubeRot += 30*DeltaTime;
+  }
+  
+  if(LetterJustPressed(Input, 'Z'))
+  {
+    __debugbreak();
+  }
+  
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
-  AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Vec3(0, 0, 0), Vec3(1, 1.5f, 1), PrevM));
+  vec3 Rot = Vec3(State->CubeRot, State->CubeRot, State->CubeRot);
+  AddCollider(DrawMesh(State->CubeMeshes, Vec3(-1, 0, 0), Rot, Vec3(1, 1.5f, 1), PrevM, true));
   
   Platform->SetMesh(State->ConeMeshes[0].Mesh);
-  AddCollider(DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Vec3(0, 0, 0), Vec3(1, 1, 1), PrevM));
+  AddCollider(DrawMesh(State->ConeMeshes, Vec3(5, 0, 0), Rot, Vec3(1, 1, 1), PrevM, true));
+  
+  if(State->Mode == GAME_MODE_DEV)
+  {
+    Platform->SetFillMode(PLATFORM_FILL_WIREFRAME);
+    Platform->SetShader(State->OutlineShader);
+    Platform->SetMesh(State->OutlineMesh.Mesh);
+    for(s32 ColliderIndex = 0;
+        ColliderIndex < State->NumColliders;
+        ++ColliderIndex)
+    {
+      game_aabb Collider = State->Colliders[ColliderIndex];
+      DrawMesh(&State->OutlineMesh, Collider.MidPoint, Vec3(0, 0, 0), Collider.Scale, PrevM, false);
+    }
+  }
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

@@ -39,6 +39,9 @@ cbuffer cbuffer1 : register(b1)
   float AmbientStrength;
   float3 LightDirection;
   float3 LightColor;
+  
+  float Padding;
+  float3 CameraPosition;
 }
 
 sampler sampler0 : register(s0);

@@ -26,6 +26,7 @@ typedef struct game_aabb
   vec3 Max;
   vec3 Min;
   vec3 MidPoint;
+  vec3 Scale;
 } game_aabb;
 
 typedef enum game_mode
@@ -59,8 +60,13 @@ typedef struct game_state
   vec3 LightDirection;
   vec3 LightColor;
   
+  platform_shader OutlineShader;
+  game_mesh OutlineMesh;
+  
   b32 ControllingCharacter;
   
+  f32 CubeRot;
+  b32 IsRotating;
   game_mesh *CubeMeshes;
   game_mesh *ConeMeshes;
   

@@ -3,3 +3,5 @@ This is the game New Horizons by Evan Butterfield.
 In order to build (Windows only right now), you need to run "vcvarsall.bat x64"
 This will add the Visual C Compiler and other related tools to the path so
 that the build scripts can run and compile the code
+
+MAKE SURE TO RUN ONE OF THE SHADER BUILD SCRIPTS BEFORE YOU RUN

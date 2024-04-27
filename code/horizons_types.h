@@ -101,7 +101,7 @@ typedef union vec2
   f32 Elements[2];
 } vec2;
 
-#define Vec2(x, y) (vec2){(x), (y)}
+#define Vec2(x, y) (vec2){(f32)(x), (f32)(y)}
 
 typedef union vec3
 {

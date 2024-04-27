@@ -143,6 +143,11 @@ string8 SeverityMessages[MESSAGE_SEVERITY_COUNT] =
   { "[WARNING]: ", 11},
   { "[ERROR]:   ", 11} };
 
+typedef void *platform_sprite;
+typedef void *platform_mesh;
+typedef void *platform_shader;
+
+#pragma pack(push, 1)
 typedef struct vertex
 {
   vec3 Position;
@@ -151,14 +156,9 @@ typedef struct vertex
   vec3 Color;
 } vertex;
 
-typedef void *platform_sprite;
-typedef void *platform_mesh;
-typedef void *platform_shader;
-
-#pragma pack(push, 1)
 typedef struct vs_shader_constants
 {
-  mat4 Matrix;
+  mat4 M;
   mat4 Transform;
   vec4 Color;
 } vs_shader_constants;
@@ -172,13 +172,20 @@ typedef struct ps_shader_constants
   float Padding;
   vec3 CameraPosition;
 } ps_shader_constants;
+
+typedef struct vs_shader_constants_2d
+{
+  mat4 M;
+  vec4 Color;
+} vs_shader_constants_2d;
 #pragma pack(pop)
 
-typedef enum platform_fill_mode
+typedef enum platform_render_mode
 {
-  PLATFORM_FILL_SOLID,
-  PLATFORM_FILL_WIREFRAME
-} platform_fill_mode;
+  PLATFORM_RENDER_SOLID,
+  PLATFORM_RENDER_WIREFRAME,
+  PLATFORM_RENDER_2D
+} platform_render_mode;
 
 // TODO(evan): Create a metadata thing to generate this
 
@@ -222,6 +229,9 @@ typedef PLATFORM_CREATE_SPRITE(platform_create_sprite);
 #define PLATFORM_SET_SPRITE(name) void name(platform_sprite Sprite)
 typedef PLATFORM_SET_SPRITE(platform_set_sprite);
 
+#define PLATFORM_DRAW_SPRITE(name) void name(vs_shader_constants_2d *VSConstants)
+typedef PLATFORM_DRAW_SPRITE(platform_draw_sprite);
+
 #define PLATFORM_CREATE_MESH(name) platform_mesh name(vertex *Vertices, u32 VertexCount, u32 *Indices, u32 IndexCount)
 typedef PLATFORM_CREATE_MESH(platform_create_mesh);
 
@@ -237,8 +247,8 @@ typedef PLATFORM_CREATE_SHADER(platform_create_shader);
 #define PLATFORM_SET_SHADER(name) void name(platform_shader Shader)
 typedef PLATFORM_SET_SHADER(platform_set_shader);
 
-#define PLATFORM_SET_FILL_MODE(name) void name(platform_fill_mode Mode)
-typedef PLATFORM_SET_FILL_MODE(platform_set_fill_mode);
+#define PLATFORM_SET_RENDER_MODE(name) void name(platform_render_mode Mode)
+typedef PLATFORM_SET_RENDER_MODE(platform_set_render_mode);
 
 
 // Misc
@@ -261,12 +271,13 @@ typedef struct platform_api
   
   platform_create_sprite *CreateSprite;
   platform_set_sprite *SetSprite;
+  platform_draw_sprite *DrawSprite;
   platform_create_mesh *CreateMesh;
   platform_set_mesh *SetMesh;
   platform_draw_mesh *DrawMesh;
   platform_create_shader *CreateShader;
   platform_set_shader *SetShader;
-  platform_set_fill_mode *SetFillMode;
+  platform_set_render_mode *SetRenderMode;
   
   platform_copy_memory *CopyMemory;
   platform_zero_memory *ZeroMemory;
@@ -285,9 +296,14 @@ typedef struct memory
   
   platform_api Platform;
   platform_sprite DefaultSprite;
-  platform_mesh DefaultMesh;
-  vertex *DefaultMeshVertices;
-  s32 DefaultMeshVertexCount;
+  platform_mesh DefaultQuadMesh;
+  vertex *DefaultQuadMeshVertices;
+  s32 DefaultQuadMeshVertexCount;
+  
+  platform_mesh DefaultCubeMesh;
+  vertex *DefaultCubeMeshVertices;
+  s32 DefaultCubeMeshVertexCount;
+  
   platform_shader DefaultShader;
 } memory;
 

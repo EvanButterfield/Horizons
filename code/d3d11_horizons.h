@@ -35,20 +35,25 @@ typedef struct d3d11_state
   
   ID3D11Buffer *VSConstantsBuffer;
   ID3D11Buffer *PSConstantsBuffer;
+  ID3D11Buffer *VSConstantsBuffer2D;
   
   d3d11_shader DefaultShader;
   d3d11_shader CurrentShader;
   d3d11_sprite DefaultSprite;
   d3d11_sprite CurrentSprite;
-  d3d11_mesh DefaultMesh;
-  vertex *DefaultMeshVertices;
-  s32 DefaultMeshVertexCount;
+  d3d11_mesh DefaultQuadMesh;
+  vertex *DefaultQuadMeshVertices;
+  s32 DefaultQuadMeshVertexCount;
+  d3d11_mesh DefaultCubeMesh;
+  vertex *DefaultCubeMeshVertices;
+  s32 DefaultCubeMeshVertexCount;
   d3d11_mesh CurrentMesh;
   
   ID3D11SamplerState *Sampler;
   ID3D11BlendState *BlendState;
   ID3D11RasterizerState *RSSolid;
   ID3D11RasterizerState *RSWireframe;
+  ID3D11RasterizerState *RS2D;
   ID3D11RasterizerState *CurrentRS;
   ID3D11DepthStencilState *DepthState;
   

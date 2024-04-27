@@ -60,6 +60,7 @@ typedef struct game_state
   vec3 LightDirection;
   vec3 LightColor;
   
+  platform_shader Shader2d;
   platform_shader OutlineShader;
   game_mesh OutlineMesh;
   

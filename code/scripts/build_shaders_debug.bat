@@ -13,6 +13,9 @@ fxc %PSOptions% /Fo shader_ps.fxc %Options% w:\new-horizons\code\shaders.hlsl
 
 fxc %VSOptions% /Fo outline_shader_vs.fxc %Options% w:\new-horizons\code\outline_shaders.hlsl
 fxc %PSOptions% /Fo outline_shader_ps.fxc %Options% w:\new-horizons\code\outline_shaders.hlsl
+
+fxc %VSOptions% /Fo 2d_shader_vs.fxc %Options% w:\new-horizons\code\2d_shaders.hlsl
+fxc %PSOptions% /Fo 2d_shader_ps.fxc %Options% w:\new-horizons\code\2d_shaders.hlsl
 echo "Done compiling New Horizons shaders"
 
 popd

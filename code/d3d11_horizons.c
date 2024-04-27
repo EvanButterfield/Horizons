@@ -11,7 +11,7 @@ D3D11CreateSprite_(ID3D11Device *Device,
                    u32 *Texture, u32 TextureWidth, u32 TextureHeight);
 internal d3d11_mesh
 D3D11CreateMesh_(ID3D11Device *Device,
-                 vertex *VData, u32 VDataLength,
+                 vertex *VData, u32 VDataCount,
                  u32 *IData, u32 IDataLength);
 
 internal d3d11_state
@@ -98,9 +98,10 @@ InitD3D11(HWND Window, platform_api *Platform,
     IDXGIDevice_Release(DXGIDevice);
   }
   
-  d3d11_mesh Mesh;
-  vertex *VData;
-  s32 VDataCount;
+  d3d11_mesh CubeMesh;
+  vertex *CubeVData;
+  s32 CubeVDataCount;
+  // TODO(evan): UV Data for default cube
   {
     vertex VData_[] =
     {
@@ -136,9 +137,9 @@ InitD3D11(HWND Window, platform_api *Platform,
       { {-1, -1, 1}, {0, -1, 0}, {0, 0}, {1, 1, 1} },
       { {-1, -1, 1}, {0, 0, 1}, {0, 0}, {1, 1, 1} },
     };
-    VDataCount = ArrayCount(VData_);
-    VData = PushArray(PermArena, vertex, VDataCount);
-    Platform->CopyMemory(VData, VData_, sizeof(vertex)*VDataCount);
+    CubeVDataCount = ArrayCount(VData_);
+    CubeVData = PushArray(PermArena, vertex, CubeVDataCount);
+    Platform->CopyMemory(CubeVData, VData_, sizeof(vertex)*CubeVDataCount);
     
     u32 IData[] =
     {
@@ -147,37 +148,57 @@ InitD3D11(HWND Window, platform_api *Platform,
       21, 18, 12, 21, 12, 15,
       16, 3, 9, 16, 9, 22,
       5, 2, 8, 5, 8, 11,
-      17, 13, 0, 17, 0, 4
+      17, 13, 0, 17, 0, 4,
     };
     
-    Mesh = D3D11CreateMesh_(Device, VData, VDataCount,
-                            IData, ArrayCount(IData));
+    CubeMesh = D3D11CreateMesh_(Device, CubeVData, CubeVDataCount,
+                                IData, ArrayCount(IData));
+  }
+  
+  d3d11_mesh QuadMesh;
+  vertex *QuadVData;
+  s32 QuadVDataCount;
+  {
+    vertex VData[] =
+    {
+      { {1, 1, 0}, {0}, {0, 1}, {1, 1, 1} },
+      { {1, -1, 0}, {0}, {1, 1}, {1, 1, 1} },
+      { {-1, -1, 0}, {0}, {0, 1}, {1, 1, 1} },
+      { {-1, 1, 0}, {0}, {0, 0}, {1, 1, 1} },
+    };
+    QuadVDataCount = ArrayCount(VData);
+    QuadVData = PushArray(PermArena, vertex, QuadVDataCount);
+    Platform->CopyMemory(QuadVData, VData, sizeof(vertex)*QuadVDataCount);
+    
+    u32 IData[] =
+    {
+      0, 1, 2,
+      2, 3, 0,
+    };
+    
+    QuadMesh = D3D11CreateMesh_(Device, QuadVData, QuadVDataCount,
+                                IData, ArrayCount(IData));
   }
   
   ID3D11Buffer *VSConstantsBuffer;
-  {
-    D3D11_BUFFER_DESC Desc =
-    {
-      .ByteWidth = (UINT)AlignTo(sizeof(vs_shader_constants), 16),
-      .Usage = D3D11_USAGE_DYNAMIC,
-      .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
-      .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
-    };
-    
-    ID3D11Device_CreateBuffer(Device, &Desc, 0, &VSConstantsBuffer);
-  }
-  
   ID3D11Buffer *PSConstantsBuffer;
+  ID3D11Buffer *VSConstantsBuffer2D;
   {
     D3D11_BUFFER_DESC Desc =
     {
-      .ByteWidth = (UINT)AlignTo(sizeof(ps_shader_constants), 16),
       .Usage = D3D11_USAGE_DYNAMIC,
       .BindFlags = D3D11_BIND_CONSTANT_BUFFER,
       .CPUAccessFlags = D3D11_CPU_ACCESS_WRITE
     };
     
+    Desc.ByteWidth = (UINT)AlignTo(sizeof(vs_shader_constants), 16);
+    ID3D11Device_CreateBuffer(Device, &Desc, 0, &VSConstantsBuffer);
+    
+    Desc.ByteWidth = (UINT)AlignTo(sizeof(ps_shader_constants), 16);
     ID3D11Device_CreateBuffer(Device, &Desc, 0, &PSConstantsBuffer);
+    
+    Desc.ByteWidth = (UINT)AlignTo(sizeof(vs_shader_constants_2d), 16);
+    ID3D11Device_CreateBuffer(Device, &Desc, 0, &VSConstantsBuffer2D);
   }
   
   d3d11_shader Shader = D3D11CreateShader_(Device, "shader", TempArena, Platform);
@@ -237,6 +258,7 @@ InitD3D11(HWND Window, platform_api *Platform,
   
   ID3D11RasterizerState* RSSolid;
   ID3D11RasterizerState* RSWireframe;
+  ID3D11RasterizerState *RS2D;
   {
     D3D11_RASTERIZER_DESC Desc =
     {
@@ -250,6 +272,9 @@ InitD3D11(HWND Window, platform_api *Platform,
     Desc.FillMode = D3D11_FILL_WIREFRAME;
     Desc.CullMode = D3D11_CULL_NONE;
     ID3D11Device_CreateRasterizerState(Device, &Desc, &RSWireframe);
+    
+    Desc.FillMode = D3D11_FILL_SOLID;
+    ID3D11Device_CreateRasterizerState(Device, &Desc, &RS2D);
   }
   
   ID3D11DepthStencilState* DepthState;
@@ -278,21 +303,26 @@ InitD3D11(HWND Window, platform_api *Platform,
     
     .VSConstantsBuffer = VSConstantsBuffer,
     .PSConstantsBuffer = PSConstantsBuffer,
+    .VSConstantsBuffer2D = VSConstantsBuffer2D,
     
     .DefaultShader = Shader,
     .CurrentShader = Shader,
     .DefaultSprite = Sprite,
     .CurrentSprite = Sprite,
-    .DefaultMesh = Mesh,
-    .DefaultMeshVertices = VData,
-    .DefaultMeshVertexCount = VDataCount,
-    .CurrentMesh = Mesh,
+    .DefaultQuadMesh = QuadMesh,
+    .DefaultQuadMeshVertices = QuadVData,
+    .DefaultQuadMeshVertexCount = QuadVDataCount,
+    .DefaultCubeMesh = CubeMesh,
+    .DefaultCubeMeshVertices = CubeVData,
+    .DefaultCubeMeshVertexCount = CubeVDataCount,
+    .CurrentMesh = CubeMesh,
     
     .Sampler = Sampler,
     .BlendState = BlendState,
     .RSSolid = RSSolid,
     .RSWireframe = RSWireframe,
     .CurrentRS = RSSolid,
+    .RS2D = RS2D,
     .DepthState = DepthState
   };
   return(State);
@@ -386,6 +416,27 @@ D3D11StartFrame(d3d11_state *State)
   }
 }
 
+// TODO(evan): Finish this!
+internal void
+D3D11DrawSprite(d3d11_state *State,
+                vs_shader_constants_2d *VSConstants,
+                platform_api *Platform)
+{
+  D3D11_MAPPED_SUBRESOURCE Mapped;
+  ID3D11DeviceContext_Map(State->Context, (ID3D11Resource *)State->VSConstantsBuffer2D, 0, D3D11_MAP_WRITE_DISCARD, 0, &Mapped);
+  Platform->CopyMemory(Mapped.pData, VSConstants, sizeof(vs_shader_constants_2d));
+  ID3D11DeviceContext_Unmap(State->Context, (ID3D11Resource *)State->VSConstantsBuffer2D, 0);
+  ID3D11DeviceContext_VSSetConstantBuffers(State->Context, 0, 1, &State->VSConstantsBuffer2D);
+  ID3D11DeviceContext_PSSetShaderResources(State->Context, 0, 1, &State->CurrentSprite.TextureView);
+  
+  u32 Stride = sizeof(vertex);
+  u32 Offset = 0;
+  ID3D11DeviceContext_IASetVertexBuffers(State->Context, 0, 1, &State->DefaultQuadMesh.VBuffer, &Stride, &Offset);
+  ID3D11DeviceContext_IASetIndexBuffer(State->Context, State->DefaultQuadMesh.IBuffer, DXGI_FORMAT_R32_UINT, 0);
+  
+  ID3D11DeviceContext_DrawIndexed(State->Context, State->DefaultQuadMesh.IndexCount, 0, 0);
+}
+
 internal void
 D3D11DrawMesh(d3d11_state *State, vs_shader_constants *VSConstants, ps_shader_constants *PSConstants, platform_api *Platform)
 {
@@ -415,10 +466,11 @@ D3D11DrawMesh(d3d11_state *State, vs_shader_constants *VSConstants, ps_shader_co
 }
 
 internal void
-D3D11EndFrame(d3d11_state *State, platform_api *Platform)
+D3D11EndFrame(d3d11_state *State, platform_api *Platform, window_dimension Dimension)
 {
   b32 VSync = true;
   HRESULT Result = IDXGISwapChain1_Present(State->SwapChain, VSync, 0);
+  
   if(Result == DXGI_STATUS_OCCLUDED)
   {
     if(VSync)
@@ -551,14 +603,14 @@ D3D11CreateSprite(d3d11_state *State,
 
 internal d3d11_mesh
 D3D11CreateMesh_(ID3D11Device *Device,
-                 vertex *VData, u32 VDataLength,
+                 vertex *VData, u32 VDataCount,
                  u32 *IData, u32 IDataLength)
 {
   ID3D11Buffer *VBuffer;
   {
     D3D11_BUFFER_DESC Desc =
     {
-      .ByteWidth = sizeof(vertex)*VDataLength,
+      .ByteWidth = VDataCount*sizeof(vertex),
       .Usage = D3D11_USAGE_IMMUTABLE,
       .BindFlags = D3D11_BIND_VERTEX_BUFFER
     };
@@ -589,26 +641,30 @@ D3D11CreateMesh_(ID3D11Device *Device,
 
 internal d3d11_mesh
 D3D11CreateMesh(d3d11_state *State,
-                vertex *VData, u32 VDataLength,
+                void *VData, u32 VDataSize,
                 u32 *IData, u32 IDataLength)
 {
   d3d11_mesh Mesh = D3D11CreateMesh_(State->Device,
-                                     VData, VDataLength,
+                                     VData, VDataSize,
                                      IData, IDataLength);
   return(Mesh);
 }
 
 internal void
-D3D11SetFillMode(d3d11_state *State, platform_fill_mode Mode)
+D3D11SetRenderMode(d3d11_state *State, platform_render_mode Mode)
 {
   ID3D11RasterizerState *RS = 0;
-  if(Mode == PLATFORM_FILL_SOLID)
+  if(Mode == PLATFORM_RENDER_SOLID)
   {
     RS = State->RSSolid;
   }
-  else if(Mode == PLATFORM_FILL_WIREFRAME)
+  else if(Mode == PLATFORM_RENDER_WIREFRAME)
   {
     RS = State->RSWireframe;
+  }
+  else if(Mode == PLATFORM_RENDER_2D)
+  {
+    RS = State->RS2D;
   }
   
   State->CurrentRS = RS;

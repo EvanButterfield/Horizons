@@ -19,6 +19,8 @@ int _fltused;
 
 #include "win32_horizons.h"
 
+global win32_state *GlobalState;
+
 internal PLATFORM_COPY_MEMORY(Win32CopyMemory)
 {
   RtlCopyMemory(Dest, Source, Length);
@@ -40,8 +42,6 @@ Win32GetWindowDimension(HWND Window)
   Dimension.Height = ClientRect.bottom - ClientRect.top;
   return(Dimension);
 }
-
-global win32_state *GlobalState;
 
 #define X_INPUT_GET_STATE(name) DWORD WINAPI name(DWORD dwUserIndex, XINPUT_STATE *pState)
 typedef X_INPUT_GET_STATE(x_input_get_state);
@@ -359,6 +359,11 @@ internal PLATFORM_SET_SPRITE(Win32SetSprite)
   GlobalState->D3D11State.CurrentSprite = *Sprite_;
 }
 
+internal PLATFORM_DRAW_SPRITE(Win32DrawSprite)
+{
+  D3D11DrawSprite(&GlobalState->D3D11State, VSConstants, &GlobalState->Platform);
+}
+
 internal PLATFORM_CREATE_MESH(Win32CreateMesh)
 {
   d3d11_mesh Mesh = D3D11CreateMesh(&GlobalState->D3D11State, Vertices, VertexCount,
@@ -394,9 +399,9 @@ internal PLATFORM_SET_SHADER(Win32SetShader)
   D3D11SetShader(&GlobalState->D3D11State, *((d3d11_shader *)Shader));
 }
 
-internal PLATFORM_SET_FILL_MODE(Win32SetFillMode)
+internal PLATFORM_SET_RENDER_MODE(Win32SetRenderMode)
 {
-  D3D11SetFillMode(&GlobalState->D3D11State, Mode);
+  D3D11SetRenderMode(&GlobalState->D3D11State, Mode);
 }
 
 internal LRESULT CALLBACK
@@ -441,12 +446,13 @@ WinMain(HINSTANCE Instance,
     
     Platform.CreateSprite = Win32CreateSprite;
     Platform.SetSprite = Win32SetSprite;
+    Platform.DrawSprite = Win32DrawSprite;
     Platform.CreateMesh = Win32CreateMesh;
     Platform.SetMesh = Win32SetMesh;
     Platform.DrawMesh = Win32DrawMesh;
     Platform.CreateShader = Win32CreateShader;
     Platform.SetShader = Win32SetShader;
-    Platform.SetFillMode = Win32SetFillMode;
+    Platform.SetRenderMode = Win32SetRenderMode;
     GameMemory.Platform = Platform;
     
     memory_index PlatformPermMemorySize = Mebibytes(64);
@@ -531,9 +537,12 @@ WinMain(HINSTANCE Instance,
         }
         
         GameMemory.DefaultSprite = &GlobalState->D3D11State.DefaultSprite;
-        GameMemory.DefaultMesh = &GlobalState->D3D11State.DefaultMesh;
-        GameMemory.DefaultMeshVertices = GlobalState->D3D11State.DefaultMeshVertices;
-        GameMemory.DefaultMeshVertexCount = GlobalState->D3D11State.DefaultMeshVertexCount;
+        GameMemory.DefaultQuadMesh = &GlobalState->D3D11State.DefaultQuadMesh;
+        GameMemory.DefaultCubeMesh = &GlobalState->D3D11State.DefaultCubeMesh;
+        GameMemory.DefaultQuadMeshVertices = GlobalState->D3D11State.DefaultQuadMeshVertices;
+        GameMemory.DefaultQuadMeshVertexCount = GlobalState->D3D11State.DefaultQuadMeshVertexCount;
+        GameMemory.DefaultCubeMeshVertices = GlobalState->D3D11State.DefaultCubeMeshVertices;
+        GameMemory.DefaultCubeMeshVertexCount = GlobalState->D3D11State.DefaultCubeMeshVertexCount;
         GameMemory.DefaultShader = &GlobalState->D3D11State.DefaultShader;
         
         LARGE_INTEGER LastCounter = Win32GetWallClock();
@@ -628,7 +637,7 @@ WinMain(HINSTANCE Instance,
                                                  GlobalState->WindowDimension, DeltaTime);
           ShouldClose |= GlobalState->WindowClosed;
           
-          D3D11EndFrame(&GlobalState->D3D11State, &GlobalState->Platform);
+          D3D11EndFrame(&GlobalState->D3D11State, &GlobalState->Platform, GlobalState->WindowDimension);
           
           GlobalState->TempArena.Used = 0;
         }

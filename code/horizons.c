@@ -29,7 +29,7 @@ DrawMesh(game_mesh *Mesh, vec3 Position, vec3 Rotation, vec3 Scale, mat4 PrevM, 
   mat4 M = Mat4Mul(Transform, PrevM);
   
   vs_shader_constants VSConstants;
-  VSConstants.Matrix = M;
+  VSConstants.M = M;
   VSConstants.Transform = Transform;
   VSConstants.Color = Mesh->Material->Color;
   
@@ -128,21 +128,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     State->LightColor = Vec3(.3f, .3f, .3f);
     
     State->OutlineShader = Platform->CreateShader("outline_shader");
+    State->Shader2d = Platform->CreateShader("2d_shader");
     
     State->Mode = GAME_MODE_VIEW;
     
     {
-      State->OutlineMesh.Mesh = Memory->DefaultMesh;
+      State->OutlineMesh.Mesh = Memory->DefaultCubeMesh;
       
       // NOTE(evan): We store the same position 3 times for normal accuracy
-      s32 CollisionPositionCount = Memory->DefaultMeshVertexCount/3;
+      s32 CollisionPositionCount = Memory->DefaultCubeMeshVertexCount/3;
       vec3 *CollisionPositions = PushArray(&State->PermArena, vec3, CollisionPositionCount);
       s32 VerticesScanIndex = 0;
       for(s32 VertexIndex = 0;
           VertexIndex < CollisionPositionCount;
           ++VertexIndex)
       {
-        CollisionPositions[VertexIndex] = Memory->DefaultMeshVertices[VerticesScanIndex].Position;
+        CollisionPositions[VertexIndex] = Memory->DefaultCubeMeshVertices[VerticesScanIndex].Position;
         VerticesScanIndex += 3;
       }
       
@@ -335,24 +336,22 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
     }
   }
   
+  f32 Near = .01f;
+  f32 Far = 100;
+  
   f32 Aspect = (f32)WindowDimension.Width / WindowDimension.Height;
-  mat4 Perspective = Mat4Perspective(Aspect, 60, 0.01f, 100);
+  mat4 Perspective = Mat4Perspective(Aspect, 60, Near, Far);
   mat4 View = Mat4View(State->CameraPosition, State->CameraFront, State->CameraUp);
   mat4 PrevM = Mat4Mul(View, Perspective);
   
   State->NumColliders = 0;
   
   Platform->SetShader(Memory->DefaultShader);
-  Platform->SetFillMode(PLATFORM_FILL_SOLID);
+  Platform->SetRenderMode(PLATFORM_RENDER_SOLID);
   
   if(State->IsRotating)
   {
     State->CubeRot += 30*DeltaTime;
-  }
-  
-  if(LetterJustPressed(Input, 'Z'))
-  {
-    __debugbreak();
   }
   
   Platform->SetMesh(State->CubeMeshes[0].Mesh);
@@ -364,7 +363,7 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
   
   if(State->Mode == GAME_MODE_DEV)
   {
-    Platform->SetFillMode(PLATFORM_FILL_WIREFRAME);
+    Platform->SetRenderMode(PLATFORM_RENDER_WIREFRAME);
     Platform->SetShader(State->OutlineShader);
     Platform->SetMesh(State->OutlineMesh.Mesh);
     for(s32 ColliderIndex = 0;
@@ -375,6 +374,24 @@ GAME_UPDATE_AND_RENDER(GameUpdateAndRender)
       DrawMesh(&State->OutlineMesh, Collider.MidPoint, Vec3(0, 0, 0), Collider.Scale, PrevM, false);
     }
   }
+  
+  mat4 Ortho = Mat4Orthographic(-1, 1, 1, -1, Near, Far);
+  vec2 InvWindowDimension = Vec2(1.0f / WindowDimension.Width, 1.0f / WindowDimension.Height);
+  vec2 HalfWindowDimension = Vec2(WindowDimension.Width/2, WindowDimension.Height/2);
+  f32 ScaleF = 10;
+  vec3 Scale = Vec3(InvWindowDimension.x*ScaleF, InvWindowDimension.y*ScaleF, 1);
+  vec2 MousePos = Vec2(Input->Mouse.X, Input->Mouse.Y);
+  vec2 Pos = Vec2(MousePos.x/HalfWindowDimension.x, MousePos.y/(-HalfWindowDimension.y));
+  Pos = Vec2Subtract(Pos, Vec2(1, -1));
+  mat4 Transform = Mat4CreateTransform3D(Vec3(Pos.x, Pos.y, 1), Vec3(0, 0, 0), Scale);
+  mat4 M = Mat4Mul(Ortho, Transform);
+  Platform->SetShader(State->Shader2d);
+  Platform->SetRenderMode(PLATFORM_RENDER_2D);
+  
+  vs_shader_constants_2d VS;
+  VS.M = M;
+  VS.Color = Vec4(1, 1, 1, 1);
+  Platform->DrawSprite(&VS);
   
   State->LastInput = *Input;
   State->TempArena.Used = 0;

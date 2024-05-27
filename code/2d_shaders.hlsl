@@ -37,4 +37,6 @@ float4 PS(ps_input Input) : SV_TARGET
 {
   float4 Tex = texture0.Sample(sampler0, Input.UV);
   return Tex*Input.Color;
+  
+  return Tex*Input.Color;
 }

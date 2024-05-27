@@ -484,26 +484,6 @@ Mat4View(vec3 Position, vec3 Rotation, vec3 Up)
   return(Result);
 }
 
-#if 0
-internal mat4
-Mat4CreateTransform2D(vec2 Pos, f32 Angle, vec2 Scale, window_dimension _WindowDimension)
-{
-  vec2 WindowDimension = {(f32)_WindowDimension.Width, (f32)_WindowDimension.Height};
-  Pos = Vec2Add(Pos, Vec2DivideScalar(WindowDimension, 2));
-  /*if(UseTopLeft)
-  {
-    Pos = Vec2Add(Pos, Vec2DivideScalar(Scale, 2));
-  }*/
-  
-  mat4 Result = Mat4Identity();
-  Result = Mat4Translate(Result, (vec3){Pos.x, Pos.y, 0});
-  Result = Mat4Rotate(Result, Angle, (vec3){0, 0, 1});
-  Result = Mat4Scale(Result, (vec3){Scale.x, Scale.y, 1});
-  
-  return(Result);
-}
-#endif
-
 internal mat4
 Mat4CreateTransform3D(vec3 Position, vec3 Rotation, vec3 Scale)
 {
@@ -522,6 +502,17 @@ Mat4CreateTransform3D(vec3 Position, vec3 Rotation, vec3 Scale)
   
   mat4 Result = Mat4Mul(ScaleM, RotateM);
   Result = Mat4Mul(Result, TranslateM);
+  
+  return(Result);
+}
+
+internal mat4
+Mat4CreateTransform2D(vec3 Pos, vec3 Rotation, vec3 Scale, window_dimension _WindowDimension)
+{
+  vec3 NewScale = Vec3(Scale.x/_WindowDimension.Width,
+                       Scale.y/_WindowDimension.Height,
+                       Scale.z);
+  mat4 Result = Mat4CreateTransform3D(Pos, Rotation, NewScale);
   
   return(Result);
 }

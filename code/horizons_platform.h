@@ -286,6 +286,7 @@ typedef struct platform_api
   platform_str_to_int *StrToInt;
 } platform_api;
 
+// TODO(evan): Move default 2d shader into here
 typedef struct memory
 {
   memory_index PermanentStorageSize;

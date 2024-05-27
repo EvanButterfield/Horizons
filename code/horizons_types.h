@@ -59,8 +59,6 @@
 #define STR2(X) #X
 #define STR(X) STR2(X)
 
-#define MAX_ENTITIES 128
-
 #include <stdint.h>
 typedef uint8_t u8;
 typedef uint16_t u16;
@@ -121,6 +119,7 @@ typedef union vec3
 } vec3;
 
 #define Vec3(x, y, z) (vec3){(x), (y), (z)}
+#define Vec3Scalar(x) (vec3){(x), (x), (x)}
 #define Vec3GreaterThan(A, B) (((A).x > (B).x) && ((A).y > (B).y) && ((A).z > (B).z))
 #define Vec3LessThan(A, B) (((A).x < (B).x) && ((A).y < (B).y) && ((A).z < (B).z))
 

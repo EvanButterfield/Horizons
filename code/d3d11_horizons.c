@@ -161,10 +161,10 @@ InitD3D11(HWND Window, platform_api *Platform,
   {
     vertex VData[] =
     {
-      { {1, 1, 0}, {0}, {0, 1}, {1, 1, 1} },
-      { {1, -1, 0}, {0}, {1, 1}, {1, 1, 1} },
-      { {-1, -1, 0}, {0}, {0, 1}, {1, 1, 1} },
-      { {-1, 1, 0}, {0}, {0, 0}, {1, 1, 1} },
+      { {1, 1, 0}, {0, 0, 0}, {1, 1}, {1, 1, 1} },
+      { {1, -1, 0}, {0, 0, 0}, {1, 0}, {1, 1, 1} },
+      { {-1, -1, 0}, {0, 0, 0}, {0, 0}, {1, 1, 1} },
+      { {-1, 1, 0}, {0, 0, 0}, {0, 1}, {1, 1, 1} },
     };
     QuadVDataCount = ArrayCount(VData);
     QuadVData = PushArray(PermArena, vertex, QuadVDataCount);
@@ -229,7 +229,7 @@ InitD3D11(HWND Window, platform_api *Platform,
       .MipLODBias = 0,
       .MaxAnisotropy = 1,
       .MinLOD = 0,
-      .MaxLOD = D3D11_FLOAT32_MAX,
+      .MaxLOD = D3D11_FLOAT32_MAX
     };
     
     ID3D11Device_CreateSamplerState(Device, &Desc, &Sampler);
@@ -249,8 +249,8 @@ InitD3D11(HWND Window, platform_api *Platform,
         .SrcBlendAlpha = D3D11_BLEND_SRC_ALPHA,
         .DestBlendAlpha = D3D11_BLEND_INV_SRC_ALPHA,
         .BlendOpAlpha = D3D11_BLEND_OP_ADD,
-        .RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL,
-      },
+        .RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL
+      }
     };
     
     ID3D11Device_CreateBlendState(Device, &Desc, &BlendState);
@@ -416,7 +416,6 @@ D3D11StartFrame(d3d11_state *State)
   }
 }
 
-// TODO(evan): Finish this!
 internal void
 D3D11DrawSprite(d3d11_state *State,
                 vs_shader_constants_2d *VSConstants,
